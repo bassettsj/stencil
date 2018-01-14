@@ -2,7 +2,6 @@ import { BuildResults, CompilerCtx, Config, WatcherResults } from '../../util/in
 import { bundle } from '../bundle/bundle';
 import { catchError, getCompilerCtx } from '../util';
 import { copyTasks } from './copy-tasks';
-import { emptyDestDir, writeBuildFiles } from './write-build';
 import { finishBuild, getBuildContext, shouldAbort } from './build-utils';
 import { generateAppFiles } from '../app/generate-app-files';
 import { generateAppManifest } from '../manifest/generate-manifest';
@@ -13,6 +12,7 @@ import { initIndexHtml } from '../html/init-index-html';
 import { initWatcher } from '../watcher/watcher-init';
 import { prerenderApp } from '../prerender/prerender-app';
 import { transpileScanSrc } from '../transpile/transpile-scan-src';
+import { writeBuildFiles } from './write-build';
 
 
 export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?: WatcherResults): Promise<BuildResults> {
@@ -24,15 +24,15 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
   // reset the build context, this is important for rebuilds
   const buildCtx = getBuildContext(config, compilerCtx, watcher);
 
-  // create an initial index.html file if one doesn't already exist
-  // this is synchronous on purpose
-  if (!initIndexHtml(config, compilerCtx, buildCtx)) {
-    // error initializing the index.html file
-    // something's wrong, so let's not continue
-    return finishBuild(config, compilerCtx, buildCtx);
-  }
-
   try {
+    // create an initial index.html file if one doesn't already exist
+    // this is synchronous on purpose
+    if (await !initIndexHtml(config, compilerCtx, buildCtx)) {
+      // error initializing the index.html file
+      // something's wrong, so let's not continue
+      return finishBuild(config, compilerCtx, buildCtx);
+    }
+
     // begin the build
     // async scan the src directory for ts files
     // then transpile them all in one go
@@ -57,15 +57,10 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
     await generateAppFiles(config, compilerCtx, buildCtx, bundles, cmpRegistry);
     if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
 
-    // empty the build dest directory
-    // doing this now incase the
-    // copy tasks add to the dest directories
-    await emptyDestDir(config, buildCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
-
     // copy all assets
-    if (!buildCtx.isRebuild) {
+    if (!compilerCtx.isRebuild) {
       // only do the initial copy on the first build
+      // watcher handles any re-copies
       await copyTasks(config, compilerCtx, buildCtx);
       if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
     }

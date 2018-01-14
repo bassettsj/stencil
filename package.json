@@ -102,6 +102,6 @@
     "transform": {
       "^.+\\.(ts|tsx)$": "<rootDir>/scripts/jest.preprocessor.js"
     },
-    "testRegex": "src/compiler/watcher/test/rebuild.*\\.spec\\.(ts|tsx|js)$"
+    "testRegex": "src/sys/node/.*\\.spec\\.(ts|tsx|js)$"
   }
 }

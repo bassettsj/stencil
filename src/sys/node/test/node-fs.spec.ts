@@ -49,16 +49,85 @@ describe(`node-fs`, () => {
     expect(mockFs.diskReads).toBe(1);
   });
 
+  it(`copy, of dir`, async () => {
+    fs.writeFileSync(`/src/file1.js`, '1');
+    fs.writeFileSync(`/src/file2.js`, '2');
+
+    await fs.copy(`/src`, `/some/path`);
+
+    let writeFiles = await fs.commit();
+    expect(writeFiles[0]).toBe(`/some/path/file1.js`);
+    expect(writeFiles[1]).toBe(`/some/path/file2.js`);
+    expect(writeFiles.length).toBe(2);
+  });
+
+  it(`copy, of file`, async () => {
+    fs.writeFileSync(`/src/file1.js`, '1');
+    fs.writeFileSync(`/src/file2.js`, '2');
+
+    await fs.copy(`/src/file1.js`, `/some/path/file1.js`);
+
+    let writeFiles = await fs.commit();
+    expect(writeFiles[0]).toBe(`/some/path/file1.js`);
+    expect(writeFiles.length).toBe(1);
+  });
+
+  it(`copyDir`, async () => {
+    fs.writeFileSync(`/src/file1.js`, '1');
+    fs.writeFileSync(`/src/file2.js`, '2');
+    fs.writeFileSync(`/other-dir/file3.js`, '3');
+
+    await fs.copyDir(`/src`, `/some/path`);
+
+    let writeFiles = await fs.commit();
+    expect(writeFiles[0]).toBe(`/some/path/file1.js`);
+    expect(writeFiles[1]).toBe(`/some/path/file2.js`);
+    expect(writeFiles.length).toBe(2);
+  });
+
+  it(`copyFile`, async () => {
+    fs.writeFileSync(`/src/file.js`, 'content');
+
+    await fs.copyFile(`/src/file.js`, `/some/path/whatever.js`);
+
+    let writeFiles = await fs.commit();
+    expect(writeFiles[0]).toBe(`/some/path/whatever.js`);
+    expect(writeFiles.length).toBe(1);
+  });
+
+  it(`copyFile, do copy w/ filter`, async () => {
+    fs.writeFileSync(`/src/file.js`, 'content');
+
+    await fs.copyFile(`/src/file.js`, `/some/path/whatever.js`, { filter: (src, dest) => {
+      return src === `/src/file.js` && dest === `/some/path/whatever.js`;
+    }});
+
+    let writeFiles = await fs.commit();
+    expect(writeFiles[0]).toBe(`/some/path/whatever.js`);
+    expect(writeFiles.length).toBe(1);
+  });
+
+  it(`copyFile, do not copy w/ filter`, async () => {
+    fs.writeFileSync(`/src/file.js`, 'content');
+
+    await fs.copyFile(`/src/file.js`, `/some/path/whatever.js`, { filter: () => {
+      return false;
+    }});
+
+    let writeFiles = await fs.commit();
+    expect(writeFiles.length).toBe(0);
+  });
+
   it(`emptyDir`, async () => {
     mockFs.writeFileSync(`/dir1/file1.js`, ``);
     mockFs.writeFileSync(`/dir1/file2.js`, ``);
     mockFs.writeFileSync(`/dir1/dir2/file2.js`, ``);
     mockFs.writeFileSync(`/dir3/dir4/file1.js`, ``);
     fs.emptyDir(`/dir1`);
-    expect(mockFs.data[`/dir1/file1.js`]).toBeUndefined();
-    expect(mockFs.data[`/dir1/file2.js`]).toBeUndefined();
-    expect(mockFs.data[`/dir1/dir2/file2.js`]).toBeUndefined();
-    expect(mockFs.data[`/dir3/dir4/file1.js`]).toBeDefined();
+    expect(mockFs.d[`/dir1/file1.js`]).toBeUndefined();
+    expect(mockFs.d[`/dir1/file2.js`]).toBeUndefined();
+    expect(mockFs.d[`/dir1/dir2/file2.js`]).toBeUndefined();
+    expect(mockFs.d[`/dir3/dir4/file1.js`]).toBeDefined();
   });
 
   it(`ensureDir diskWrites`, async () => {
@@ -248,6 +317,34 @@ describe(`node-fs`, () => {
     expect(content).toBe(`content`);
   });
 
+  it(`remove file`, async () => {
+    fs.writeFileSync(`/dir/file.js`, `content`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(true);
+    await fs.remove(`/dir/file.js`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(false);
+  });
+
+  it(`remove dir`, async () => {
+    fs.writeFileSync(`/dir/file.js`, `content`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(true);
+    await fs.remove(`/dir`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(false);
+  });
+
+  it(`removeSync file`, async () => {
+    fs.writeFileSync(`/dir/file.js`, `content`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(true);
+    fs.removeSync(`/dir/file.js`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(false);
+  });
+
+  it(`removeSync dir`, async () => {
+    fs.writeFileSync(`/dir/file.js`, `content`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(true);
+    fs.removeSync(`/dir`);
+    expect(fs.accessSync(`/dir/file.js`)).toBe(false);
+  });
+
   it(`stat with disk read`, async () => {
     try {
       await fs.stat(`/dir/file.js`);
@@ -319,6 +416,15 @@ describe(`node-fs`, () => {
     expect(writeFiles[1]).toBe(`/dir/file2.js`);
   });
 
+  it(`writeFile inMemoryOnly`, async () => {
+    mockFs.diskWrites = 0;
+    await fs.writeFile(`/dir/file1.js`, `content`, { inMemoryOnly: true });
+    expect(mockFs.diskWrites).toBe(0);
+
+    const content = await fs.readFile(`/dir/file1.js`);
+    expect(content).toBe(`content`);
+  });
+
   it(`writeFileSync with queued disk write`, async () => {
     fs.writeFileSync(`/dir/file1.js`, `content`);
     expect(mockFs.diskWrites).toBe(2);
@@ -339,6 +445,15 @@ describe(`node-fs`, () => {
     fs.writeFileSync(`/dir/file2.js`, `2`);
 
     expect(mockFs.diskWrites).toBe(3);
+  });
+
+  it(`writeFileSync inMemoryOnly`, async () => {
+    mockFs.diskWrites = 0;
+    fs.writeFileSync(`/dir/file1.js`, `content`, { inMemoryOnly: true });
+    expect(mockFs.diskWrites).toBe(0);
+
+    const content = fs.readFileSync(`/dir/file1.js`);
+    expect(content).toBe(`content`);
   });
 
   it(`clearFileCache`, async () => {

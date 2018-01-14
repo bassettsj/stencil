@@ -15,7 +15,7 @@ export async function generateDistribution(config: Config, compilerCtx: Compiler
 
   return Promise.all([
     readPackageJson(config, compilerCtx, buildCtx),
-    copySourceCollectionComponentsToDistribution(config, buildCtx),
+    copySourceCollectionComponentsToDistribution(config, compilerCtx, buildCtx),
     generateTypes(config, compilerCtx)
   ]);
 }
@@ -102,7 +102,7 @@ export function validatePackageFiles(config: Config, diagnostics: Diagnostic[], 
 }
 
 
-function copySourceCollectionComponentsToDistribution(config: Config, buildCtx: BuildCtx) {
+function copySourceCollectionComponentsToDistribution(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   // for any components that are dependencies, such as ionicons is a dependency of ionic
   // then we need to copy the dependency to the dist so it just works downstream
   const promises: Promise<any>[] = [];
@@ -112,7 +112,7 @@ function copySourceCollectionComponentsToDistribution(config: Config, buildCtx: 
 
     const src = moduleFile.jsFilePath;
     const dest = config.sys.path.join(config.collectionDir, COLLECTION_DEPENDENCIES_DIR, moduleFile.originalCollectionComponentPath);
-    const copyPromise = config.sys.copy(src, dest);
+    const copyPromise = compilerCtx.fs.copy(src, dest);
 
     promises.push(copyPromise);
   });

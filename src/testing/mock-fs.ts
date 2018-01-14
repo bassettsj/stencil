@@ -3,87 +3,79 @@ import { normalizePath } from '../compiler/util';
 import * as path from 'path';
 
 
-// for whatever reasons, something in
-// jest/testing/node/whatever crashes with memory issues
-// when using async/await. Whatever, promies it is
-export class MockFsExtra implements FileSystem {
-  data: {[filePath: string]: { isFile: boolean; isDirectory: boolean; content?: string; } } = {};
+export class MockFileSystem implements FileSystem {
+  d: {[filePath: string]: { isFile: boolean; isDirectory: boolean; content?: string; } } = {};
 
   diskWrites = 0;
   diskReads = 0;
 
-  copy(_srcPath: string, _destPath: string) {
+  async copyFile(_srcPath: string, _destPath: string) {
     this.diskWrites++;
-    return Promise.resolve();
   }
-  emptyDir(dirPath: string) {
-    const items = Object.keys(this.data);
-    items.forEach(item => {
-      if (item.startsWith(dirPath)) {
-        this.diskWrites++;
-        delete this.data[item];
-      }
-    });
-    return Promise.resolve();
-  }
-  ensureDir(filePath: string) {
-    return Promise.resolve(this.ensureDirSync(filePath));
-  }
-  ensureDirSync(filePath: string) {
+
+  async mkdir(dirPath: string) {
+    dirPath = normalizePath(dirPath);
     this.diskWrites++;
-    if (!this.data[filePath]) {
-      this.data[filePath] = {
-        isDirectory: true,
-        isFile: false,
-      };
-    }
+
+    this.d[dirPath] = {
+      isDirectory: true,
+      isFile: false
+    };
   }
-  ensureFile(filePath: string) {
-    this.diskWrites++;
-    if (!this.data[filePath]) {
-      this.data[filePath] = {
-        isDirectory: false,
-        isFile: true,
-        content: ''
-      };
-    }
-    return Promise.resolve();
-  }
-  readdir(filePath: string) {
+
+  async readdir(filePath: string) {
     filePath = normalizePath(filePath);
     this.diskReads++;
-    const filePaths = Object.keys(this.data);
+
+    const filePaths = Object.keys(this.d);
     const dirs: string[] = [];
 
     filePaths.forEach(f => {
-      const dirItem = path.relative(filePath, f).split('/')[0].split('\\')[0];
-      if (!dirItem.startsWith('.') && !dirItem.startsWith('/') && !dirItem.startsWith('\\')) {
-        if (dirItem !== '' && dirs.indexOf(dirItem) === -1) {
+      const dirItem = path.relative(filePath, f).split('/')[0];
+      if (!dirItem.startsWith('.') && !dirItem.startsWith('/')) {
+        if (dirItem !== '' && !dirs.includes(dirItem)) {
           dirs.push(dirItem);
         }
       }
     });
 
-    return Promise.resolve(dirs.sort());
+    return dirs.sort();
   }
-  readFile(filePath: string) {
-    return Promise.resolve(this.readFileSync(filePath));
+
+  async readFile(filePath: string) {
+    return this.readFileSync(filePath);
   }
+
   readFileSync(filePath: string) {
+    filePath = normalizePath(filePath);
     this.diskReads++;
-    if (this.data[filePath] && typeof this.data[filePath].content === 'string') {
-      return this.data[filePath].content;
+    if (this.d[filePath] && typeof this.d[filePath].content === 'string') {
+      return this.d[filePath].content;
     }
     throw new Error(`doesn't exist: ${filePath}`);
   }
-  stat(filePath: string) {
-    return Promise.resolve(this.statSync(filePath));
+
+  async rmdir(dirPath: string) {
+    dirPath = normalizePath(dirPath);
+    const items = Object.keys(this.d);
+    items.forEach(item => {
+      if (item.startsWith(dirPath + '/') || item === dirPath) {
+        this.diskWrites++;
+        delete this.d[item];
+      }
+    });
   }
+
+  async stat(filePath: string) {
+    return this.statSync(filePath);
+  }
+
   statSync(filePath: string) {
+    filePath = normalizePath(filePath);
     this.diskReads++;
-    if (this.data[filePath]) {
-      const isDirectory = this.data[filePath].isDirectory;
-      const isFile = this.data[filePath].isFile;
+    if (this.d[filePath]) {
+      const isDirectory = this.d[filePath].isDirectory;
+      const isFile = this.d[filePath].isFile;
       return  {
         isDirectory: () => isDirectory,
         isFile: () => isFile
@@ -91,12 +83,20 @@ export class MockFsExtra implements FileSystem {
     }
     throw new Error(`doesn't exist: ${filePath}`);
   }
-  writeFile(filePath: string, content: string) {
-    return Promise.resolve(this.writeFileSync(filePath, content));
+
+  async unlink(filePath: string) {
+    filePath = normalizePath(filePath);
+    this.diskWrites++;
+    delete this.d[filePath];
   }
+
+  async writeFile(filePath: string, content: string) {
+    return this.writeFileSync(filePath, content);
+  }
+
   writeFileSync(filePath: string, content: string) {
     this.diskWrites++;
-    this.data[filePath] = {
+    this.d[filePath] = {
       isDirectory: false,
       isFile: true,
       content: content

@@ -51,26 +51,12 @@ export class NodeSystem implements StencilSystem {
     };
   }
 
-
-  copy(src: string, dest: string, opts: any) {
-    return new Promise<void>((resolve, reject) => {
-      opts = opts || {};
-      this.sysUtil.fsExtra.copy(src, dest, opts, (err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
   get createDom() {
     return createDom;
   }
 
   createFileSystem() {
-    return new NodeFileSystem(this.sysUtil.fsExtra, this.nodePath);
+    return new NodeFileSystem(this.nodeFs);
   }
 
   createWatcher(events: BuildEvents, paths: string, opts: any) {
@@ -98,46 +84,6 @@ export class NodeSystem implements StencilSystem {
       });
 
     return watcher;
-  }
-
-  emptyDir(dir: any) {
-    return new Promise<void>((resolve, reject) => {
-      this.sysUtil.fsExtra.emptyDir(dir, (err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-  ensureDir(dir: any) {
-    return new Promise<void>((resolve, reject) => {
-      this.sysUtil.fsExtra.ensureDir(dir, (err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-  ensureDirSync(dir: any) {
-    this.sysUtil.fsExtra.ensureDirSync(dir);
-  }
-
-  ensureFile(file: any) {
-    return new Promise<void>((resolve, reject) => {
-      this.sysUtil.fsExtra.ensureFile(file, (err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
   }
 
   get fs() {
@@ -290,18 +236,6 @@ export class NodeSystem implements StencilSystem {
 
   get path() {
     return this.nodePath;
-  }
-
-  remove(dir: string) {
-    return new Promise<void>((resolve, reject) => {
-      this.sysUtil.fsExtra.remove(dir, (err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
   }
 
   resolveModule(fromDir: string, moduleId: string) {

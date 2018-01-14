@@ -2,14 +2,14 @@ import { BuildCtx, Config, CompilerCtx } from '../../util/interfaces';
 import { catchError } from '../util';
 
 
-export function initIndexHtml(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
+export async function initIndexHtml(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   // if there isn't an index.html yet
   // let's generate a slim one quick so that
   // on the first build the user sees a loading indicator
   // this is synchronous on purpose so that it's saved
   // before the dev server fires up and loads the index.html page
 
-  if (buildCtx.isRebuild) {
+  if (!config.generateWWW || compilerCtx.isRebuild) {
     // don't bother doing this again on rebuilds
     return true;
   }
@@ -26,8 +26,8 @@ export function initIndexHtml(config: Config, compilerCtx: CompilerCtx, buildCtx
     // ok, so we haven't written an index.html build file yet
     // and we do know they have a src one, so let's write a
     // filler index.html file that shows while the first build is happening
-    compilerCtx.fs.ensureDirSync(config.wwwDir);
-    compilerCtx.fs.writeFileSync(config.wwwIndexHtml, FILLER_INDEX_BUILD);
+    await compilerCtx.fs.writeFile(config.wwwIndexHtml, FILLER_INDEX_BUILD);
+    compilerCtx.fs.commit();
 
   } catch (e) {
     catchError(buildCtx.diagnostics, e);
@@ -39,6 +39,7 @@ export function initIndexHtml(config: Config, compilerCtx: CompilerCtx, buildCtx
   // successful, let's continue with the build
   return true;
 }
+
 
 const FILLER_INDEX_BUILD = `
 <!DOCTYPE html>

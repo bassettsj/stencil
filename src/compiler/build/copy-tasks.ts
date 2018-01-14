@@ -18,13 +18,8 @@ export async function copyTasks(config: Config, compilerCtx: CompilerCtx, buildC
   const copyTasks = Object.keys(config.copy).map(copyTaskName => config.copy[copyTaskName]);
 
   try {
-    await Promise.all(copyTasks.map(async copyTask => {
+    await Promise.all(copyTasks.map(copyTask => {
       return processCopyTasks(config, compilerCtx, allCopyTasks, copyTask);
-    }));
-
-    await Promise.all(allCopyTasks.map(ct => {
-      const dir = ct.isDirectory ? ct.dest : config.sys.path.dirname(ct.dest);
-      return compilerCtx.fs.ensureDir(dir);
     }));
 
     await Promise.all(allCopyTasks.map(copyTask => {

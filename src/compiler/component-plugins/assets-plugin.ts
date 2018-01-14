@@ -1,5 +1,5 @@
-import { AssetsMeta, BuildCtx, Config } from '../../util/interfaces';
-import { catchError, normalizePath } from '../util';
+import { AssetsMeta, BuildCtx, Config, CompilerCtx } from '../../util/interfaces';
+import { catchError, normalizePath, pathJoin } from '../util';
 import { COLLECTION_DEPENDENCIES_DIR } from '../manifest/manifest-data';
 import { getAppDistDir, getAppWWWBuildDir } from '../app/app-file-naming';
 
@@ -37,14 +37,14 @@ function normalizeAssetDir(config: Config, componentFilePath: string, assetsDir:
     assetsMeta.cmpRelativePath = assetsDir;
 
     // create the absolute path to the asset dir
-    assetsMeta.absolutePath = normalizePath(config.sys.path.join(componentDir, assetsDir));
+    assetsMeta.absolutePath = pathJoin(config, componentDir, assetsDir);
   }
 
   return assetsMeta;
 }
 
 
-export function copyComponentAssets(config: Config, buildCtx: BuildCtx) {
+export function copyComponentAssets(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
 
   if (skipAssetsCopy(config, buildCtx)) {
     // no need to recopy all assets again
@@ -76,24 +76,18 @@ export function copyComponentAssets(config: Config, buildCtx: BuildCtx) {
   copyToBuildDir.forEach(assetsMeta => {
     // figure out what the path is to the component directory
     if (config.generateWWW) {
-      const wwwBuildDirDestination = normalizePath(config.sys.path.join(
-        getAppWWWBuildDir(config),
-        assetsMeta.cmpRelativePath
-      ));
+      const wwwBuildDirDestination = pathJoin(config, getAppWWWBuildDir(config), assetsMeta.cmpRelativePath);
 
       // let's copy to the www/build directory!
-      const copyToWWWBuildDir = config.sys.copy(assetsMeta.absolutePath, wwwBuildDirDestination);
+      const copyToWWWBuildDir = compilerCtx.fs.copy(assetsMeta.absolutePath, wwwBuildDirDestination);
       dirCopyPromises.push(copyToWWWBuildDir);
     }
 
     if (config.generateDistribution) {
-      const distDirDestination = normalizePath(config.sys.path.join(
-        getAppDistDir(config),
-        assetsMeta.cmpRelativePath
-      ));
+      const distDirDestination = pathJoin(config, getAppDistDir(config), assetsMeta.cmpRelativePath);
 
       // let's copy to the www/build directory!
-      const copyToDistDir = config.sys.copy(assetsMeta.absolutePath, distDirDestination);
+      const copyToDistDir = compilerCtx.fs.copy(assetsMeta.absolutePath, distDirDestination);
       dirCopyPromises.push(copyToDistDir);
     }
   });
@@ -109,7 +103,7 @@ export function copyComponentAssets(config: Config, buildCtx: BuildCtx) {
       const collectionDirDestination = getCollectionDirDestination(config, assetsMeta);
 
       // let's copy to the dist/collection directory!
-      const copyToCollectionDir = config.sys.copy(assetsMeta.absolutePath, collectionDirDestination);
+      const copyToCollectionDir = compilerCtx.fs.copy(assetsMeta.absolutePath, collectionDirDestination);
       dirCopyPromises.push(copyToCollectionDir);
     });
   }
@@ -128,17 +122,13 @@ export function getCollectionDirDestination(config: Config, assetsMeta: AssetsMe
 
   if (assetsMeta.originalCollectionPath) {
     // this is from another collection, so reuse the same path it had
-    return normalizePath(config.sys.path.join(
-      config.collectionDir,
-      COLLECTION_DEPENDENCIES_DIR,
-      assetsMeta.originalCollectionPath
-    ));
+    return pathJoin(config, config.collectionDir, COLLECTION_DEPENDENCIES_DIR, assetsMeta.originalCollectionPath);
   }
 
-  return normalizePath(config.sys.path.join(
+  return pathJoin(config,
     config.collectionDir,
     config.sys.path.relative(config.srcDir, assetsMeta.absolutePath)
-  ));
+  );
 }
 
 

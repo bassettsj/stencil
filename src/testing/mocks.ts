@@ -6,11 +6,10 @@ import { createPlatformServer } from '../server/platform-server';
 import { createRendererPatch } from '../core/renderer/patch';
 import { initHostElement } from '../core/instance/init-host-element';
 import { initComponentInstance } from '../core/instance/init-component-instance';
-import { MockFsExtra } from './mock-fs';
+import { MockFileSystem } from './mock-fs';
 import { NodeFileSystem } from '../sys/node/node-fs';
 import { noop } from '../util/helpers';
 import { validateBuildConfig } from '../util/validate-config';
-import * as path from 'path';
 
 
 export function mockPlatform(win?: any, domApi?: DomApi) {
@@ -93,30 +92,7 @@ export function mockStencilSystem() {
       typescriptVersion: 'test'
     },
 
-    copy: function mockCopyDir(src: string, dest: string) {
-      src; dest;
-      return new Promise(resolve => {
-        resolve();
-      });
-    },
-
     createDom: mockCreateDom,
-
-    createFileSystem() {
-      return mockFs();
-    },
-
-    emptyDir: function() {
-      return new Promise(resolve => {
-        resolve();
-      });
-    },
-
-    ensureDir: function() {
-      return new Promise(resolve => {
-        resolve();
-      });
-    },
 
     generateContentHash: function mockGenerateContentHash(content: string, length: number) {
       var crypto = require('crypto');
@@ -145,13 +121,6 @@ export function mockStencilSystem() {
     },
 
     path: require('path'),
-
-    remove: function mockRmDir(path) {
-      path;
-      return new Promise(resolve => {
-        resolve();
-      });
-    },
 
     rollup: rollup,
 
@@ -238,8 +207,7 @@ rollup.plugins = {
 
 
 export function mockFs() {
-  const fsExtra = new MockFsExtra();
-  return new NodeFileSystem(fsExtra, path);
+  return new NodeFileSystem(new MockFileSystem());
 }
 
 

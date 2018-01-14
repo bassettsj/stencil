@@ -6,6 +6,7 @@ import { hasError } from '../util';
 export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watcher: WatcherResults) {
   // data for one build
   const isRebuild = !!watcher;
+  compilerCtx.isRebuild = isRebuild;
 
   const msg = `${isRebuild ? 'rebuild' : 'build'}, ${config.fsNamespace}, ${config.devMode ? 'dev' : 'prod'} mode, started`;
 
@@ -21,13 +22,16 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
     bundleBuildCount: 0,
     appFileBuildCount: 0,
     indexBuildCount: 0,
-    isRebuild: isRebuild,
-    filesWritten: [],
-    components: [],
     watcher: watcher,
     aborted: false,
     startTime: Date.now(),
-    timeSpan: config.logger.createTimeSpan(msg)
+    timeSpan: config.logger.createTimeSpan(msg),
+    components: [],
+    filesWritten: [],
+    filesCopied: [],
+    filesDeleted: [],
+    dirsDeleted: [],
+    dirsAdded: [],
   };
 
   return buildCtx;
@@ -43,7 +47,7 @@ export function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: 
 
   } else {
     // create a nice pretty message stating what happend
-    const buildText = buildCtx.isRebuild ? 'rebuild' : 'build';
+    const buildText = compilerCtx.isRebuild ? 'rebuild' : 'build';
     const watchText = config.watch ? ', watching for changes...' : '';
     let buildStatus = 'finished';
     let statusColor = 'green';
@@ -58,12 +62,12 @@ export function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: 
     buildCtx.timeSpan.finish(`${buildText} ${buildStatus}${watchText}`, statusColor, true, true);
   }
 
-  const buildResults = generateBuildResults(config, buildCtx);
+  const buildResults = generateBuildResults(config, compilerCtx, buildCtx);
 
   // emit a build event, which happens for inital build and rebuilds
   compilerCtx.events.emit('build', buildResults);
 
-  if (buildCtx.isRebuild) {
+  if (compilerCtx.isRebuild) {
     // emit a rebuild event, which happens only for rebuilds
     compilerCtx.events.emit('rebuild', buildResults);
   }
@@ -72,7 +76,7 @@ export function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: 
 }
 
 
-export function generateBuildResults(config: Config, buildCtx: BuildCtx) {
+export function generateBuildResults(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   // create the build results that get returned
   const buildResults: BuildResults = {
     buildId: buildCtx.buildId,
@@ -84,23 +88,43 @@ export function generateBuildResults(config: Config, buildCtx: BuildCtx) {
   // only bother adding the buildStats config is enabled
   // useful for testing/debugging
   if (config.buildStats) {
-    generateBuildResultsStats(buildCtx, buildResults);
+    generateBuildResultsStats(compilerCtx, buildCtx, buildResults);
   }
 
   return buildResults;
 }
 
 
-function generateBuildResultsStats(buildCtx: BuildCtx, buildResults: BuildResults) {
+function generateBuildResultsStats(compilerCtx: CompilerCtx, buildCtx: BuildCtx, buildResults: BuildResults) {
+  // stuff on the right are internal property names
+  // stuff set on the left is public and should not be refactored
   buildResults.stats = {
     duration: Date.now() - buildCtx.startTime,
-    isRebuild: buildCtx.isRebuild,
-    filesWritten: buildCtx.filesWritten.sort(),
+    isRebuild: compilerCtx.isRebuild,
     components: buildCtx.components,
     transpileBuildCount: buildCtx.transpileBuildCount,
     bundleBuildCount: buildCtx.bundleBuildCount,
-    styleBuildCount: buildCtx.styleBuildCount
+    styleBuildCount: buildCtx.styleBuildCount,
+    filesWritten: buildCtx.filesWritten.sort()
   };
+
+  if (buildCtx.watcher) {
+    buildResults.stats.filesChanged = buildCtx.watcher.filesChanged.slice().sort();
+    buildResults.stats.filesUpdated = buildCtx.watcher.filesUpdated.slice().sort();
+    buildResults.stats.filesAdded = buildCtx.watcher.filesAdded.slice().sort();
+    buildResults.stats.filesDeleted = buildCtx.watcher.filesDeleted.slice().sort();
+    buildResults.stats.dirsAdded = buildCtx.watcher.dirsAdded.slice().sort();
+    buildResults.stats.dirsDeleted = buildCtx.watcher.dirsDeleted.slice().sort();
+    buildResults.stats.configUpdated = buildCtx.watcher.configUpdated;
+  } else {
+    buildResults.stats.filesChanged = [];
+    buildResults.stats.filesUpdated = [];
+    buildResults.stats.filesAdded = [];
+    buildResults.stats.filesDeleted = [];
+    buildResults.stats.dirsAdded = [];
+    buildResults.stats.dirsDeleted = [];
+    buildResults.stats.configUpdated = false;
+  }
 }
 
 

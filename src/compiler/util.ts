@@ -1,11 +1,12 @@
 import { BANNER } from '../util/constants';
-import { Config, CompilerCtx, Diagnostic, StencilSystem } from '../util/interfaces';
 import { BuildEvents } from './events';
+import { Config, CompilerCtx, Diagnostic, StencilSystem } from '../util/interfaces';
+import { InMemoryFileSystem } from '../util/in-memory-fs';
 
 
 export function getCompilerCtx(sys: StencilSystem, compilerCtx: CompilerCtx = {}) {
   // reusable data between builds
-  compilerCtx.fs = compilerCtx.fs || sys.createFileSystem();
+  compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(sys.fs, sys.path);
   compilerCtx.events = compilerCtx.events || new BuildEvents();
   compilerCtx.appFiles = compilerCtx.appFiles || {};
   compilerCtx.appGlobalStyles = compilerCtx.appGlobalStyles || {};

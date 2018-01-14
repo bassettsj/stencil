@@ -1,5 +1,6 @@
-import { BuildCtx, CompilerCtx, Config, InMemoryFileSystem } from '../../util/interfaces';
+import { BuildCtx, CompilerCtx, Config, ModuleFiles } from '../../util/interfaces';
 import { catchError, pathJoin } from '../util';
+import { InMemoryFileSystem } from '../../util/in-memory-fs';
 import { transpileModules } from '../transpile/transpile';
 
 
@@ -22,6 +23,10 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
     // in-memory file system
     await scanDir(config, compilerCtx.fs, tsFilePaths, config.srcDir);
 
+    // let's be sure to clean out the moduleFiles in the compiler context
+    // some components may have been deleted since the last build
+    removeDeletedModules(compilerCtx.moduleFiles, tsFilePaths);
+
     // found all the files we need to transpile
     // and have all the files in-memory and ready to go
     // go ahead and kick off transpiling
@@ -40,14 +45,14 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
 function scanDir(config: Config, fs: InMemoryFileSystem, tsFilePaths: string[], dir: string): Promise<any> {
   // loop through this directory and sub directories looking for
   // files that need to be transpiled
-  return fs.readdir(dir).then(files => {
+  return fs.readdir(dir).then(dirItems => {
 
-    return Promise.all(files.map(dirItem => {
+    return Promise.all(dirItems.map(dirItem => {
       // let's loop through each of the files we've found so far
       const itemPath = pathJoin(config, dir, dirItem);
 
       // get the fs stats for the item, could be either a file or directory
-      return fs.stat(itemPath).then(async s => {
+      return fs.stat(itemPath).then(s => {
         if (s.isDirectory()) {
           // looks like it's yet another directory
           // let's keep drilling down
@@ -60,13 +65,27 @@ function scanDir(config: Config, fs: InMemoryFileSystem, tsFilePaths: string[], 
 
           // let's async read and cache the source file so it get's loaded up
           // into our in-memory file system to be used later during the actual transpile
-          return fs.readFileSync(itemPath);
+          return fs.readFile(itemPath);
         }
 
         // not a directory and it's not a typescript file, so do nothing
         return Promise.resolve();
       });
+
     }));
+  });
+}
+
+
+function removeDeletedModules(cachedModuleFiles: ModuleFiles, currentTsFilePaths: string[]) {
+  const cachedModuleFileNames = Object.keys(cachedModuleFiles);
+
+  // loop through and delete any cached module files that were not just found
+  cachedModuleFileNames.forEach(cachedModuleFileName => {
+    const stillHasModule = currentTsFilePaths.some(currentTsFilePath => currentTsFilePath === cachedModuleFileName);
+    if (!stillHasModule) {
+      delete cachedModuleFiles[cachedModuleFileName];
+    }
   });
 }
 

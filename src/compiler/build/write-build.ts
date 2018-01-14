@@ -11,12 +11,23 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
 
   const timeSpan = config.logger.createTimeSpan(`writeBuildFiles started`, true);
 
+  if (!compilerCtx.isRebuild) {
+    // empty the directories on the first build
+    await emptyDestDir(config, compilerCtx);
+  }
+
   let totalFilesWrote = 0;
 
   try {
-    buildCtx.filesWritten = await compilerCtx.fs.commit();
+    const commitResults = await compilerCtx.fs.commit();
 
-    totalFilesWrote = buildCtx.filesWritten.length;
+    buildCtx.filesWritten = commitResults.filesWritten;
+    buildCtx.filesCopied = commitResults.filesCopied;
+    buildCtx.filesDeleted = commitResults.filesDeleted;
+    buildCtx.dirsDeleted = commitResults.dirsDeleted;
+    buildCtx.dirsAdded = commitResults.dirsAdded;
+
+    totalFilesWrote = commitResults.filesWritten.length;
 
     buildCtx.manifest.bundles.forEach(b => {
       b.components.forEach(c => buildCtx.components.push(c));
@@ -30,7 +41,7 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
   // kick off copying component assets
   // and copy www/build to dist/ if generateDistribution is enabled
   await Promise.all([
-    copyComponentAssets(config, buildCtx),
+    copyComponentAssets(config, compilerCtx, buildCtx),
     generateDistribution(config, compilerCtx, buildCtx)
   ]);
 
@@ -38,25 +49,19 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
 }
 
 
-export function emptyDestDir(config: Config, buildCtx: BuildCtx) {
+function emptyDestDir(config: Config, compilerCtx: CompilerCtx) {
   // empty promises :(
   const emptyPromises: Promise<any>[] = [];
 
-  if (!buildCtx.isRebuild) {
-    // don't bother emptying the directories when it's a rebuild
-
-    if (config.generateWWW && config.emptyWWW) {
-      config.logger.debug(`empty buildDir: ${config.buildDir}`);
-      emptyPromises.push(config.sys.emptyDir(config.buildDir));
-    }
-
-    if (config.generateDistribution && config.emptyDist) {
-      config.logger.debug(`empty distDir: ${config.distDir}`);
-      emptyPromises.push(config.sys.emptyDir(config.distDir));
-    }
-
+  if (config.generateWWW && config.emptyWWW) {
+    config.logger.debug(`empty buildDir: ${config.buildDir}`);
+    emptyPromises.push(compilerCtx.fs.emptyDir(config.buildDir));
   }
 
+  if (config.generateDistribution && config.emptyDist) {
+    config.logger.debug(`empty distDir: ${config.distDir}`);
+    emptyPromises.push(compilerCtx.fs.emptyDir(config.distDir));
+  }
   // let's empty out the build dest directory
   return Promise.all(emptyPromises);
 }

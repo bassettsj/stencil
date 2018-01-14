@@ -6,7 +6,7 @@ import { WatcherListener } from './watcher-listener';
 export function initWatcher(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   // only create the watcher if this is a watch build
   // and this is the first build
-  if (buildCtx.isRebuild || !config.watch) return;
+  if (compilerCtx.isRebuild || !config.watch) return;
 
   config.logger.debug(`initWatch: ${config.srcDir}`);
 

@@ -1,7 +1,8 @@
-import { BuildResults, Config, CompilerCtx, CompilerEventName, Diagnostic, InMemoryFileSystem } from '../util/interfaces';
+import { BuildResults, Config, CompilerCtx, CompilerEventName, Diagnostic } from '../util/interfaces';
 import { build } from './build/build';
 import { docs } from './docs/docs';
 import { getCompilerCtx, catchError } from './util';
+import { InMemoryFileSystem } from '../util/in-memory-fs';
 import { validateBuildConfig } from '../util/validate-config';
 import { validatePrerenderConfig } from './prerender/validate-prerender-config';
 import { validateServiceWorkerConfig } from './service-worker/validate-sw-config';

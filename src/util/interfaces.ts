@@ -1,7 +1,8 @@
+import { BuildEvents } from '../compiler/events';
 import { CssClassMap } from './jsx-interfaces';
 export { CssClassMap } from './jsx-interfaces';
 import { ENCAPSULATION, MEMBER_TYPE, PROP_TYPE, RUNTIME_ERROR } from './constants';
-import { BuildEvents } from '../compiler/events';
+import { InMemoryFileSystem } from './in-memory-fs';
 
 
 export interface CoreContext {
@@ -471,6 +472,7 @@ export interface HydrateOptions extends RenderOptions {
 
 export interface CompilerCtx {
   activeBuildId?: number;
+  isRebuild?: boolean;
   fs?: InMemoryFileSystem;
   events?: BuildEvents;
   moduleFiles?: ModuleFiles;
@@ -507,13 +509,16 @@ export interface BuildCtx {
   bundleBuildCount: number;
   appFileBuildCount: number;
   indexBuildCount: number;
-  isRebuild: boolean;
   watcher: WatcherResults;
-  filesWritten: string[];
   components: string[];
   aborted: boolean;
   timeSpan: LoggerTimeSpan;
   startTime: number;
+  filesWritten: string[];
+  filesCopied: string[];
+  filesDeleted: string[];
+  dirsDeleted: string[];
+  dirsAdded: string[];
 }
 
 
@@ -530,6 +535,13 @@ export interface BuildResults {
     transpileBuildCount: number;
     styleBuildCount: number;
     bundleBuildCount: number;
+    dirsAdded?: string[];
+    dirsDeleted?: string[];
+    filesChanged?: string[];
+    filesUpdated?: string[];
+    filesAdded?: string[];
+    filesDeleted?: string[];
+    configUpdated?: boolean;
   };
 }
 
@@ -1138,9 +1150,6 @@ export interface PrintLine {
 
 
 export interface StencilSystem {
-  copy?(src: string, dest: string, opts?: {
-    filter?: (src: string, dest?: string) => boolean;
-  }): Promise<void>;
   compiler?: {
     name: string;
     version: string;
@@ -1152,13 +1161,9 @@ export interface StencilSystem {
     serialize(): string;
     destroy(): void;
   };
-  createFileSystem?(): InMemoryFileSystem;
   createWatcher?(events: BuildEvents, paths: string, opts?: any): FsWatcher;
-  emptyDir?(dir: string): Promise<void>;
-  ensureDir?(dir: string): Promise<void>;
-  ensureDirSync?(dir: string): void;
-  ensureFile?(dir: string): Promise<void>;
   generateContentHash?(content: string, length: number): string;
+  fs?: FileSystem;
   getClientCoreFile?(opts: {staticName: string}): Promise<string>;
   glob?(pattern: string, options: {
     cwd?: string;
@@ -1178,17 +1183,7 @@ export interface StencilSystem {
   };
   minimatch?(path: string, pattern: string, opts?: any): boolean;
   resolveModule?(fromDir: string, moduleId: string): string;
-  path?: {
-    basename(p: string, ext?: string): string;
-    dirname(p: string): string;
-    extname(p: string): string;
-    isAbsolute(p: string): boolean;
-    join(...paths: string[]): string;
-    relative(from: string, to: string): string;
-    resolve(...pathSegments: any[]): string;
-    sep: string;
-  };
-  remove?(path: string): Promise<void>;
+  path?: Path;
   rollup?: {
     rollup: {
       (config: RollupInputConfig): Promise<RollupBundle>;
@@ -1227,33 +1222,30 @@ export interface StencilSystem {
 }
 
 
-export interface InMemoryFileSystem extends FileSystem {
-  access(filePath: string): Promise<boolean>;
-  accessSync(filePath: string): boolean;
-  commit(): Promise<string[]>;
-  clearCache(): void;
-  clearDirCache(dirPath: string): void;
-  clearFileCache(filePath: string): void;
-  disk: FileSystem;
-  isChangedFile(filePath: string): Promise<boolean>;
+export interface FileSystem {
+  copyFile(src: string, dest: string): Promise<void>;
+  mkdir(dirPath: string): Promise<void>;
+  readdir(dirPath: string): Promise<string[]>;
+  readFile(filePath: string, encoding?: string): Promise<string>;
+  readFileSync(filePath: string, encoding?: string): string;
+  rmdir(dirPath: string): Promise<void>;
+  stat(path: string): Promise<{ isFile: () => boolean; isDirectory: () => boolean; }>;
+  statSync(path: string): { isFile: () => boolean; isDirectory: () => boolean; };
+  unlink(filePath: string): Promise<void>;
+  writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions): Promise<void>;
+  writeFileSync(filePath: string, content: string, opts?: FileSystemWriteOptions): void;
 }
 
 
-export interface FileSystem {
-  copy(src: string, dest: string, opts?: {
-    filter?: (src: string, dest?: string) => boolean;
-  }): Promise<void>;
-  emptyDir?(dirPath: string): Promise<void>;
-  ensureDir?(dirPath: string): Promise<void>;
-  ensureDirSync?(dirPath: string): void;
-  ensureFile?(dirPath: string): Promise<void>;
-  readdir(filePath: string): Promise<string[]>;
-  readFile(filePath: string, encoding?: string): Promise<string>;
-  readFileSync(filePath: string, encoding?: string): string;
-  stat(path: string): Promise<{ isFile: () => boolean; isDirectory: () => boolean; }>;
-  statSync(path: string): { isFile: () => boolean; isDirectory: () => boolean; };
-  writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions): Promise<void>;
-  writeFileSync(filePath: string, content: string, opts?: FileSystemWriteOptions): void;
+export interface Path {
+  basename(p: string, ext?: string): string;
+  dirname(p: string): string;
+  extname(p: string): string;
+  isAbsolute(p: string): boolean;
+  join(...paths: string[]): string;
+  relative(from: string, to: string): string;
+  resolve(...pathSegments: any[]): string;
+  sep: string;
 }
 
 

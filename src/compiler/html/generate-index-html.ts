@@ -6,7 +6,7 @@ import { generateServiceWorker } from '../service-worker/generate-sw';
 
 export async function generateIndexHtml(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
 
-  if (canSkipGenerateIndexHtml(config, buildCtx)) {
+  if (canSkipGenerateIndexHtml(config, compilerCtx, buildCtx)) {
     // no need to rebuild index.html if there were no app file changes
     return;
   }
@@ -32,8 +32,8 @@ export async function generateIndexHtml(config: Config, compilerCtx: CompilerCtx
 }
 
 
-function canSkipGenerateIndexHtml(config: Config, buildCtx: BuildCtx) {
-  if ((buildCtx.isRebuild && buildCtx.appFileBuildCount === 0) || hasError(buildCtx.diagnostics) || !config.generateWWW) {
+function canSkipGenerateIndexHtml(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
+  if ((compilerCtx.isRebuild && buildCtx.appFileBuildCount === 0) || hasError(buildCtx.diagnostics) || !config.generateWWW) {
     // no need to rebuild index.html if there were no app file changes
     return true;
   }

@@ -1,9 +1,9 @@
 import { build } from '../build';
 import { Config, CompilerCtx, BuildResults, ComponentRegistry } from '../../../util/interfaces';
 import { Compiler } from '../../compiler';
-import { mockConfig, mockFs } from '../../../testing/mocks';
-import { normalizePath } from '../../util';
+import { mockConfig } from '../../../testing/mocks';
 import { validateBuildConfig } from '../../../util/validate-config';
+import { wroteFile } from '../../../testing/utils';
 
 
 describe('build', () => {
@@ -70,12 +70,5 @@ describe('build', () => {
     c.fs.ensureDirSync('/src');
     c.fs.writeFileSync('/src/index.html', `<cmp-a></cmp-a>`);
   });
-
-
-  function wroteFile(r: BuildResults, p: string) {
-    return r.stats.filesWritten.some(f => {
-      return normalizePath(f) === normalizePath(p);
-    });
-  }
 
 });
