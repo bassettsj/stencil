@@ -245,10 +245,7 @@ export class InMemoryFileSystem {
   async writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions) {
     filePath = normalizePath(filePath);
 
-    if (!this.d[filePath]) {
-      this.d[filePath] = {};
-    }
-    const d = this.d[filePath];
+    const d = this.d[filePath] = this.d[filePath] || {};
     d.exists = true;
     d.isFile = true;
     d.isDirectory = false;
@@ -275,6 +272,12 @@ export class InMemoryFileSystem {
       }
       d.fileText = content;
     }
+  }
+
+  writeFiles(files: { [filePath: string]: string }, opts?: FileSystemWriteOptions) {
+    return Promise.all(Object.keys(files).map(filePath => {
+      return this.writeFile(filePath, files[filePath], opts);
+    }));
   }
 
   async commit() {
