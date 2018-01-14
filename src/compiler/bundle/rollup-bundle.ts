@@ -5,6 +5,7 @@ import { generatePreamble, hasError } from '../util';
 import { getBundleIdPlaceholder } from '../../util/data-serialize';
 import localResolution from './rollup-plugins/local-resolution';
 import transpiledInMemoryPlugin from './rollup-plugins/transpiled-in-memory';
+import nodeEnvVars from './rollup-plugins/node-env-vars';
 
 
 export async function runRollup(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, bundle: Bundle) {
@@ -26,6 +27,7 @@ export async function runRollup(config: Config, compilerCtx: CompilerCtx, buildC
         bundleEntryFile(bundle),
         transpiledInMemoryPlugin(config, compilerCtx),
         localResolution(config, compilerCtx),
+        nodeEnvVars(config),
       ],
       onwarn: createOnWarnFn(buildCtx.diagnostics, bundle.moduleFiles)
 
