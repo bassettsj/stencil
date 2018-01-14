@@ -1237,6 +1237,12 @@ export interface FileSystem {
 }
 
 
+export interface FileSystemWriteOptions {
+  inMemoryOnly?: boolean;
+  clearFileCache?: boolean;
+}
+
+
 export interface Path {
   basename(p: string, ext?: string): string;
   dirname(p: string): string;
@@ -1246,12 +1252,6 @@ export interface Path {
   relative(from: string, to: string): string;
   resolve(...pathSegments: any[]): string;
   sep: string;
-}
-
-
-export interface FileSystemWriteOptions {
-  inMemoryOnly?: boolean;
-  clearFileCache?: boolean;
 }
 
 

@@ -4,7 +4,7 @@ import * as path from 'path';
 
 
 export class MockFileSystem implements FileSystem {
-  d: {[filePath: string]: { isFile: boolean; isDirectory: boolean; content?: string; } } = {};
+  data: {[filePath: string]: { isFile: boolean; isDirectory: boolean; content?: string; } } = {};
 
   diskWrites = 0;
   diskReads = 0;
@@ -17,7 +17,7 @@ export class MockFileSystem implements FileSystem {
     dirPath = normalizePath(dirPath);
     this.diskWrites++;
 
-    this.d[dirPath] = {
+    this.data[dirPath] = {
       isDirectory: true,
       isFile: false
     };
@@ -27,7 +27,7 @@ export class MockFileSystem implements FileSystem {
     filePath = normalizePath(filePath);
     this.diskReads++;
 
-    const filePaths = Object.keys(this.d);
+    const filePaths = Object.keys(this.data);
     const dirs: string[] = [];
 
     filePaths.forEach(f => {
@@ -49,19 +49,19 @@ export class MockFileSystem implements FileSystem {
   readFileSync(filePath: string) {
     filePath = normalizePath(filePath);
     this.diskReads++;
-    if (this.d[filePath] && typeof this.d[filePath].content === 'string') {
-      return this.d[filePath].content;
+    if (this.data[filePath] && typeof this.data[filePath].content === 'string') {
+      return this.data[filePath].content;
     }
     throw new Error(`doesn't exist: ${filePath}`);
   }
 
   async rmdir(dirPath: string) {
     dirPath = normalizePath(dirPath);
-    const items = Object.keys(this.d);
+    const items = Object.keys(this.data);
     items.forEach(item => {
       if (item.startsWith(dirPath + '/') || item === dirPath) {
         this.diskWrites++;
-        delete this.d[item];
+        delete this.data[item];
       }
     });
   }
@@ -73,9 +73,9 @@ export class MockFileSystem implements FileSystem {
   statSync(filePath: string) {
     filePath = normalizePath(filePath);
     this.diskReads++;
-    if (this.d[filePath]) {
-      const isDirectory = this.d[filePath].isDirectory;
-      const isFile = this.d[filePath].isFile;
+    if (this.data[filePath]) {
+      const isDirectory = this.data[filePath].isDirectory;
+      const isFile = this.data[filePath].isFile;
       return  {
         isDirectory: () => isDirectory,
         isFile: () => isFile
@@ -87,7 +87,7 @@ export class MockFileSystem implements FileSystem {
   async unlink(filePath: string) {
     filePath = normalizePath(filePath);
     this.diskWrites++;
-    delete this.d[filePath];
+    delete this.data[filePath];
   }
 
   async writeFile(filePath: string, content: string) {
@@ -96,7 +96,7 @@ export class MockFileSystem implements FileSystem {
 
   writeFileSync(filePath: string, content: string) {
     this.diskWrites++;
-    this.d[filePath] = {
+    this.data[filePath] = {
       isDirectory: false,
       isFile: true,
       content: content

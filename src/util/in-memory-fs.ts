@@ -114,14 +114,16 @@ export class InMemoryFileSystem {
   }
 
   async readdir(dirPath: string) {
-    // always a disk read
     dirPath = normalizePath(dirPath);
+
+    // always a disk read
     const dirItems = await this.fs.readdir(dirPath);
     this.d[dirPath] = {
       exists: true,
       isFile: false,
       isDirectory: true
     };
+
     dirItems.forEach(f => {
       const dirItem = this.path.join(dirPath, f);
       this.d[dirItem] = {
