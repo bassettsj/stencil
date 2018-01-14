@@ -1,6 +1,29 @@
-import { InMemoryFileSystem } from '../in-memory-fs';
+import { FsItems, FsCopyFileTask } from '../interfaces';
+import { InMemoryFileSystem, getCommitInstructions } from '../in-memory-fs';
 import { MockFileSystem } from '../../testing/mock-fs';
 import * as path from 'path';
+
+
+describe(`in-memory-fs, getCommitInstructions`, () => {
+
+  it(`do nothing`, () => {
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete.length).toBe(0);
+    expect(i.filesToWrite.length).toBe(0);
+    expect(i.dirsToDelete.length).toBe(0);
+    expect(i.dirsToEnsure.length).toBe(0);
+    expect(i.copyFileTasks.length).toBe(0);
+  });
+
+  var d: FsItems;
+  var copyFileTasks: FsCopyFileTask[];
+
+  beforeEach(() => {
+    d = {};
+    copyFileTasks = [];
+  });
+
+});
 
 
 describe(`in-memory-fs`, () => {

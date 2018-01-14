@@ -1243,6 +1243,28 @@ export interface FileSystemWriteOptions {
 }
 
 
+export interface FsItems {
+  [filePath: string]: FsItem;
+}
+
+
+export interface FsItem {
+  fileText?: string;
+  isFile?: boolean;
+  isDirectory?: boolean;
+  exists?: boolean;
+  queueWriteToDisk?: boolean;
+  queueDeleteFromDisk?: boolean;
+  queueEnsureDir?: boolean;
+}
+
+
+export interface FsCopyFileTask {
+  src: string;
+  dest: string;
+}
+
+
 export interface Path {
   basename(p: string, ext?: string): string;
   dirname(p: string): string;

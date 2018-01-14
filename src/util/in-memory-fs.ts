@@ -1,4 +1,4 @@
-import { FileSystem, FileSystemWriteOptions, Path } from './interfaces';
+import { FileSystem, FileSystemWriteOptions, FsItems, FsCopyFileTask, Path } from './interfaces';
 import { normalizePath } from '../compiler/util';
 
 
@@ -400,7 +400,7 @@ export class InMemoryFileSystem {
 }
 
 
-function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsCopyFileTask[]) {
+export function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsCopyFileTask[]) {
   const instructions = {
     filesToDelete: [] as string[],
     filesToWrite: [] as string[],
@@ -500,23 +500,4 @@ function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsCopyFile
   });
 
   return instructions;
-}
-
-interface FsItems {
-  [filePath: string]: FsItem;
-}
-
-interface FsItem {
-  fileText?: string;
-  isFile?: boolean;
-  isDirectory?: boolean;
-  exists?: boolean;
-  queueWriteToDisk?: boolean;
-  queueDeleteFromDisk?: boolean;
-  queueEnsureDir?: boolean;
-}
-
-interface FsCopyFileTask {
-  src: string;
-  dest: string;
 }
