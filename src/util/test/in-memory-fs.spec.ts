@@ -2,16 +2,170 @@ import { FsItems, FsCopyFileTask } from '../interfaces';
 import { InMemoryFileSystem, getCommitInstructions } from '../in-memory-fs';
 import { MockFileSystem } from '../../testing/mock-fs';
 import * as path from 'path';
+import { normalizePath } from '../../compiler/util';
 
 
 describe(`in-memory-fs, getCommitInstructions`, () => {
 
+  it(`dirsToDelete, sort longest to shortest, windows`, () => {
+    const root = normalizePath(`C:\\`);
+    const dir1 = normalizePath(`C:\\dir1\\`);
+    const dir2 = normalizePath(`C:\\dir1\\dir2\\`);
+    const dir3 = normalizePath(`C:\\dir1\\dir2\\dir3\\`);
+    d[root] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[dir2] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[dir3] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[dir1] = { queueDeleteFromDisk: true, isDirectory: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([]);
+    expect(i.dirsToDelete).toEqual([`C:/dir1/dir2/dir3`, `C:/dir1/dir2`, `C:/dir1`]);
+    expect(i.dirsToEnsure).toEqual([]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`C:/dir1`].queueDeleteFromDisk).toBe(false);
+    expect(d[`C:/dir1/dir2`].queueDeleteFromDisk).toBe(false);
+    expect(d[`C:/dir1/dir2/dir3`].queueDeleteFromDisk).toBe(false);
+  });
+
+  it(`dirsToDelete, sort longest to shortest, unix`, () => {
+    const root = normalizePath(`/`);
+    const dir1 = normalizePath(`/dir1`);
+    const dir2 = normalizePath(`/dir1/dir2/`);
+    const dir3 = normalizePath(`/dir1/dir2/dir3/`);
+    d[root] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[dir2] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[dir1] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[dir3] = { queueDeleteFromDisk: true, isDirectory: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([]);
+    expect(i.dirsToDelete).toEqual([`/dir1/dir2/dir3`, `/dir1/dir2`, `/dir1`]);
+    expect(i.dirsToEnsure).toEqual([]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir1/dir2`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir1/dir2/dir3`].queueDeleteFromDisk).toBe(false);
+  });
+
+  it(`ensure dirs, sort shortest to longest, windows`, () => {
+    const file2 = normalizePath(`C:\\dir1\\dir2\\dir3\\file2.js`);
+    const dir1 = normalizePath(`C:\\dir1\\`);
+    const file1 = normalizePath(`C:\\dir1\\dir2\\file1.js`);
+    d[file2] = { queueWriteToDisk: true, isFile: true };
+    d[dir1] = { queueWriteToDisk: true, isDirectory: true };
+    d[file1] = { queueWriteToDisk: true, isFile: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([`C:/dir1/dir2/dir3/file2.js`, `C:/dir1/dir2/file1.js`]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`C:/dir1`, `C:/dir1/dir2`, `C:/dir1/dir2/dir3`]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`C:/dir1`].queueDeleteFromDisk).toBe(false);
+    expect(d[`C:/dir1/dir2/file1.js`].queueDeleteFromDisk).toBe(false);
+    expect(d[`C:/dir1/dir2/dir3/file2.js`].queueDeleteFromDisk).toBe(false);
+  });
+
+  it(`ensure dirs, sort shortest to longest`, () => {
+    d[`/`] = { queueWriteToDisk: true, isDirectory: true };
+    d[`/dir1/dir2/dir3/file2.js`] = { queueWriteToDisk: true, isFile: true };
+    d[`/dir1`] = { queueWriteToDisk: true, isDirectory: true };
+    d[`/dir1/dir2/file1.js`] = { queueWriteToDisk: true, isFile: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([`/dir1/dir2/dir3/file2.js`, `/dir1/dir2/file1.js`]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`/dir1`, `/dir1/dir2`, `/dir1/dir2/dir3`]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir1/dir2/file1.js`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir1/dir2/dir3/file2.js`].queueDeleteFromDisk).toBe(false);
+  });
+
+  it(`copyFile task ensure dir`, () => {
+    copyFileTasks.push({
+      src: `/dir/file1.js`,
+      dest: `/dir2/file2.js`
+    });
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`/dir2`]);
+    expect(i.copyFileTasks.length).toEqual(1);
+  });
+
+  it(`do not delete a files/directory if we also want to ensure it`, () => {
+    d[`/dir1/file1.js`] = { queueWriteToDisk: true, queueDeleteFromDisk: true, isFile: true };
+    d[`/dir1`] = { queueDeleteFromDisk: true, isDirectory: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([`/dir1/file1.js`]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`/dir1`]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1/file1.js`].queueWriteToDisk).toBe(false);
+  });
+
+  it(`queueDeleteFromDisk`, () => {
+    d[`/`] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[`/dir1`] = { queueDeleteFromDisk: true, isDirectory: true };
+    d[`/dir1/file1.js`] = { queueDeleteFromDisk: true, isFile: true };
+    d[`/dir2/file2.js`] = { queueDeleteFromDisk: true, isFile: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([`/dir1/file1.js`, `/dir2/file2.js`]);
+    expect(i.filesToWrite).toEqual([]);
+    expect(i.dirsToDelete).toEqual([`/dir1`]);
+    expect(i.dirsToEnsure).toEqual([]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir1/file1.js`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir2/file2.js`].queueDeleteFromDisk).toBe(false);
+    expect(d[`/dir1`].queueDeleteFromDisk).toBe(false);
+  });
+
+  it(`write directory to disk`, () => {
+    d[`/dir1`] = { isDirectory: true, queueWriteToDisk: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`/dir1`]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1`].queueWriteToDisk).toBe(false);
+  });
+
+  it(`write file queued even if it's also queueDeleteFromDisk`, () => {
+    d[`/dir1/file1.js`] = { queueWriteToDisk: true, queueDeleteFromDisk: true, isFile: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([`/dir1/file1.js`]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`/dir1`]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1/file1.js`].queueWriteToDisk).toBe(false);
+  });
+
+  it(`write file queued`, () => {
+    d[`/dir1/file1.js`] = { queueWriteToDisk: true, isFile: true };
+    d[`/dir1/file2.js`] = { queueWriteToDisk: true, isFile: true };
+    d[`/dir2/file3.js`] = { queueWriteToDisk: true, isFile: true };
+    const i = getCommitInstructions(path, d, copyFileTasks);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([`/dir1/file1.js`, `/dir1/file2.js`, `/dir2/file3.js`]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([`/dir1`, `/dir2`]);
+    expect(i.copyFileTasks.length).toEqual(0);
+    expect(d[`/dir1/file1.js`].queueWriteToDisk).toBe(false);
+    expect(d[`/dir1/file2.js`].queueWriteToDisk).toBe(false);
+    expect(d[`/dir2/file3.js`].queueWriteToDisk).toBe(false);
+  });
+
   it(`do nothing`, () => {
     const i = getCommitInstructions(path, d, copyFileTasks);
-    expect(i.filesToDelete.length).toBe(0);
-    expect(i.filesToWrite.length).toBe(0);
-    expect(i.dirsToDelete.length).toBe(0);
-    expect(i.dirsToEnsure.length).toBe(0);
+    expect(i.filesToDelete).toEqual([]);
+    expect(i.filesToWrite).toEqual([]);
+    expect(i.dirsToDelete).toEqual([]);
+    expect(i.dirsToEnsure).toEqual([]);
     expect(i.copyFileTasks.length).toBe(0);
   });
 

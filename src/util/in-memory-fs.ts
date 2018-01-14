@@ -109,7 +109,7 @@ export class InMemoryFileSystem {
     this.d[dirPath] = {
       isFile: false,
       isDirectory: true,
-      queueEnsureDir: true
+      queueWriteToDisk: true
     };
   }
 
@@ -290,6 +290,9 @@ export class InMemoryFileSystem {
       this.commitCopyFiles(instructions.copyFileTasks)
     ]);
 
+    // empty the copy file tasks
+    this.copyFileTasks.length = 0;
+
     // remove all the queued files to be deleted
     const filesDeleted = await this.commitDeleteFiles(instructions.filesToDelete);
 
@@ -413,21 +416,19 @@ export function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsC
     const item = d[filePath];
 
     if (item.queueWriteToDisk) {
-      instructions.filesToWrite.push(filePath);
 
-      const dir = normalizePath(path.dirname(filePath));
-      if (!instructions.dirsToEnsure.includes(dir)) {
-        instructions.dirsToEnsure.push(dir);
-      }
+      if (item.isFile) {
+        instructions.filesToWrite.push(filePath);
+        const dir = normalizePath(path.dirname(filePath));
 
-      const i = instructions.filesToDelete.indexOf(filePath);
-      if (i > -1) {
-        instructions.filesToDelete.splice(i, 1);
-      }
+        if (!instructions.dirsToEnsure.includes(dir)) {
+          instructions.dirsToEnsure.push(dir);
+        }
 
-    } else if (item.queueEnsureDir) {
-      if (!instructions.dirsToEnsure.includes(filePath)) {
-        instructions.dirsToEnsure.push(filePath);
+      } else if (item.isDirectory) {
+        if (!instructions.dirsToEnsure.includes(filePath)) {
+          instructions.dirsToEnsure.push(filePath);
+        }
       }
 
     } else if (item.queueDeleteFromDisk) {
@@ -441,7 +442,6 @@ export function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsC
 
     item.queueDeleteFromDisk = false;
     item.queueWriteToDisk = false;
-    item.queueEnsureDir = false;
   });
 
   copyFileTasks.map(copyFileTask => {
@@ -492,8 +492,18 @@ export function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsC
     }
   });
 
+  instructions.dirsToDelete = instructions.dirsToDelete.filter(dir => {
+    if (dir === '/' || dir.endsWith(':/')) {
+      return false;
+    }
+    return true;
+  });
+
   instructions.dirsToEnsure = instructions.dirsToEnsure.filter(dir => {
     if (d[dir] && d[dir].exists && d[dir].isDirectory) {
+      return false;
+    }
+    if (dir === '/' || dir.endsWith(':/')) {
       return false;
     }
     return true;

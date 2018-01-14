@@ -1255,7 +1255,6 @@ export interface FsItem {
   exists?: boolean;
   queueWriteToDisk?: boolean;
   queueDeleteFromDisk?: boolean;
-  queueEnsureDir?: boolean;
 }
 
 
