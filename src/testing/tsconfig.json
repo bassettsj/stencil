@@ -19,7 +19,7 @@
     "outDir": "../../dist/transpiled-testing",
     "pretty": true,
     "rootDir": "../",
-    "target": "es5"
+    "target": "es2015"
   },
   "files": [
     "./index.ts"

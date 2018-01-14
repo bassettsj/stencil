@@ -1,4 +1,4 @@
-import { Config, CompilerCtx, Manifest, Bundle } from '../../util/interfaces';
+import { Config, CompilerCtx, Manifest, Bundle, BuildCtx } from '../../util/interfaces';
 import { CompilerUpgrade, validateManifestCompatibility } from './manifest-compatibility';
 import { transformSourceString } from '../transpile/transformers/util';
 import upgradeFrom0_0_5 from '../transpile/transformers/JSX_Upgrade_From_0_0_5/upgrade-jsx-props';
@@ -6,11 +6,18 @@ import upgradeFromMetadata from '../transpile/transformers/Metadata_Upgrade_From
 import ts from 'typescript';
 
 
-export async function upgradeDependentComponents(config: Config, ctx: CompilerCtx, bundles: Bundle[]) {
-  const doUpgrade = createDoUpgrade(config, ctx, bundles);
+export async function upgradeDependentComponents(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, bundles: Bundle[]) {
+  if (!buildCtx.requiresFullBuild) {
+    // if this doesn't require a full build then no need to do it again
+    return;
+  }
 
-  return Promise.all(Object.keys(ctx.dependentManifests).map(async collectionName => {
-    const manifest = ctx.dependentManifests[collectionName];
+  const timeSpan = config.logger.createTimeSpan(`upgradeDependentComponents started`, true);
+
+  const doUpgrade = createDoUpgrade(config, compilerCtx, bundles);
+
+  await Promise.all(Object.keys(compilerCtx.dependentManifests).map(async collectionName => {
+    const manifest = compilerCtx.dependentManifests[collectionName];
     const upgrades = validateManifestCompatibility(config, manifest);
 
     try {
@@ -19,10 +26,12 @@ export async function upgradeDependentComponents(config: Config, ctx: CompilerCt
       config.logger.error(`error performing compiler upgrade: ${e}`);
     }
   }));
+
+  timeSpan.finish(`upgradeDependentComponents finished`);
 }
 
 
-function createDoUpgrade(config: Config, ctx: CompilerCtx, bundles: Bundle[]) {
+function createDoUpgrade(config: Config, compilerCtx: CompilerCtx, bundles: Bundle[]) {
 
   return async (manifest: Manifest, upgrades: CompilerUpgrade[]): Promise<void> => {
     const upgradeTransforms: ts.TransformerFactory<ts.SourceFile>[] = (upgrades.map((upgrade) => {
@@ -44,9 +53,8 @@ function createDoUpgrade(config: Config, ctx: CompilerCtx, bundles: Bundle[]) {
       return;
     }
 
-    await Promise.all(manifest.modulesFiles.map(async function(moduleFile) {
-
-      const source = await ctx.fs.readFile(moduleFile.jsFilePath);
+    await Promise.all(manifest.modulesFiles.map(async moduleFile => {
+      const source = await compilerCtx.fs.readFile(moduleFile.jsFilePath);
 
       let output = '';
 
@@ -55,8 +63,8 @@ function createDoUpgrade(config: Config, ctx: CompilerCtx, bundles: Bundle[]) {
       } catch (e) {
         config.logger.error(`error performing compiler upgrade on ${moduleFile.jsFilePath}: ${e}`);
       }
-      ctx.fs.writeFile(moduleFile.jsFilePath, output, { inMemoryOnly: true });
 
+      await compilerCtx.fs.writeFile(moduleFile.jsFilePath, output, { inMemoryOnly: true });
     }));
   };
 }

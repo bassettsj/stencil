@@ -13,11 +13,14 @@ describe('transpile', () => {
 
   describe('rebuild', () => {
 
-    fit('should rebuild transpile for deleted directory', async () => {
+    it('should rebuild transpile for deleted directory', async () => {
       c.config.watch = true;
-      c.fs.writeFileSync('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`);
-      c.fs.writeFileSync('/src/some-dir/cmp-b.tsx', `@Component({ tag: 'cmp-b' }) export class CmpB {}`);
-      c.fs.writeFileSync('/src/some-dir/cmp-c.tsx', `@Component({ tag: 'cmp-c' }) export class CmpC {}`);
+      await c.fs.writeFiles({
+        '/src/cmp-a.tsx': `@Component({ tag: 'cmp-a' }) export class CmpA {}`,
+        '/src/some-dir/cmp-b.tsx': `@Component({ tag: 'cmp-b' }) export class CmpB {}`,
+        '/src/some-dir/cmp-c.tsx': `@Component({ tag: 'cmp-c' }) export class CmpC {}`
+      });
+      await c.fs.commit();
 
       // kick off the initial build, wait for it to finish
       let r = await c.build();
@@ -26,7 +29,8 @@ describe('transpile', () => {
       // create a rebuild listener
       const rebuildListener = c.once('rebuild');
 
-      c.fs.removeSync('/src/some-dir');
+      await c.fs.removeDir('/src/some-dir');
+      await c.fs.commit();
 
       // kick off a rebuild
       c.trigger('dirDelete', '/src/some-dir');
@@ -45,7 +49,10 @@ describe('transpile', () => {
     it('should rebuild transpile for added directory', async () => {
       c.config.bundles = [ { components: ['cmp-a'] } ];
       c.config.watch = true;
-      c.fs.writeFileSync('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.writeFiles({
+        '/src/cmp-a.tsx': `@Component({ tag: 'cmp-a' }) export class CmpA {}`
+      }, { clearFileCache: true });
+      await c.fs.commit();
 
       // kick off the initial build, wait for it to finish
       let r = await c.build();
@@ -55,8 +62,11 @@ describe('transpile', () => {
       const rebuildListener = c.once('rebuild');
 
       // add directory
-      c.fs.writeFileSync('/src/new-dir/cmp-b.tsx', `@Component({ tag: 'cmp-b' }) export class CmpB {}`, { clearFileCache: true });
-      c.fs.writeFileSync('/src/new-dir/cmp-c.tsx', `@Component({ tag: 'cmp-c' }) export class CmpC {}`, { clearFileCache: true });
+      await c.fs.writeFiles({
+        '/src/new-dir/cmp-b.tsx': `@Component({ tag: 'cmp-b' }) export class CmpB {}`,
+        '/src/new-dir/cmp-c.tsx': `@Component({ tag: 'cmp-c' }) export class CmpC {}`
+      }, { clearFileCache: true });
+      await c.fs.commit();
 
       // kick off a rebuild
       c.trigger('dirAdd', '/src/new-dir');
@@ -75,7 +85,8 @@ describe('transpile', () => {
     it('should rebuild transpile for changed typescript file', async () => {
       c.config.bundles = [ { components: ['cmp-a'] } ];
       c.config.watch = true;
-      c.fs.writeFileSync('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.writeFile('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.commit();
 
       // kick off the initial build, wait for it to finish
       let r = await c.build();
@@ -85,7 +96,8 @@ describe('transpile', () => {
       const rebuildListener = c.once('rebuild');
 
       // write an actual change
-      c.fs.writeFileSync('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA { constructor() { console.log('changed!!'); } }`, { clearFileCache: true });
+      await c.fs.writeFile('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA { constructor() { console.log('changed!!'); } }`, { clearFileCache: true });
+      await c.fs.commit();
 
       // kick off a rebuild
       c.trigger('fileUpdate', '/src/cmp-a.tsx');
@@ -103,7 +115,8 @@ describe('transpile', () => {
     it('should not rebuild transpile for unchanged typescript file', async () => {
       c.config.bundles = [ { components: ['cmp-a'] } ];
       c.config.watch = true;
-      c.fs.writeFileSync('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.writeFile('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.commit();
 
       // kick off the build, wait for it to finish
       let r = await c.build();
@@ -117,7 +130,8 @@ describe('transpile', () => {
       const rebuildListener = c.once('rebuild');
 
       // write the same darn thing, no actual change
-      c.fs.writeFileSync('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.writeFile('/src/cmp-a.tsx', `@Component({ tag: 'cmp-a' }) export class CmpA {}`, { clearFileCache: true });
+      await c.fs.commit();
 
       // kick off a rebuild
       c.trigger('fileUpdate', '/src/cmp-a.tsx');
@@ -136,10 +150,10 @@ describe('transpile', () => {
 
     var c: TestingCompiler;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       c = new TestingCompiler();
-      c.fs.ensureDirSync('/src');
-      c.fs.writeFileSync('/src/index.html', `<cmp-a></cmp-a>`);
+      await c.fs.writeFile('/src/index.html', `<cmp-a></cmp-a>`);
+      await c.fs.commit();
     });
 
   });

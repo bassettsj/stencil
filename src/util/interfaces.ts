@@ -502,6 +502,7 @@ export interface CompilerCtx {
 
 export interface BuildCtx {
   buildId: number;
+  requiresFullBuild: boolean;
   diagnostics: Diagnostic[];
   manifest: Manifest;
   transpileBuildCount: number;

@@ -10,18 +10,18 @@ describe('service worker', () => {
 
     it('should set globDirectory', () => {
       config.serviceWorker = {
-        globDirectory: '/custom/www/'
+        globDirectory: '/custom/www'
       };
       validateServiceWorkerConfig(config);
       const swConfig = config.serviceWorker as ServiceWorkerConfig;
-      expect(swConfig.globDirectory).toBe(normalizePath('/custom/www/'));
+      expect(swConfig.globDirectory).toBe('/custom/www');
     });
 
     it('should set default globDirectory', () => {
       config.serviceWorker = true;
       validateServiceWorkerConfig(config);
       const swConfig = config.serviceWorker as ServiceWorkerConfig;
-      expect(swConfig.globDirectory).toBe(normalizePath('/User/me/app/www/'));
+      expect(swConfig.globDirectory).toBe('/User/me/app/www/');
     });
 
     it('should set globPatterns', () => {

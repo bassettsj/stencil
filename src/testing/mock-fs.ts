@@ -23,15 +23,15 @@ export class MockFileSystem implements FileSystem {
     };
   }
 
-  async readdir(filePath: string) {
-    filePath = normalizePath(filePath);
+  async readdir(dirPath: string) {
+    dirPath = normalizePath(dirPath);
     this.diskReads++;
 
     const filePaths = Object.keys(this.data);
     const dirs: string[] = [];
 
     filePaths.forEach(f => {
-      const dirItem = path.relative(filePath, f).split('/')[0];
+      const dirItem = path.relative(dirPath, f).split('/')[0];
       if (!dirItem.startsWith('.') && !dirItem.startsWith('/')) {
         if (dirItem !== '' && !dirs.includes(dirItem)) {
           dirs.push(dirItem);

@@ -4,7 +4,10 @@ import { hasError } from '../util';
 
 
 export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watcher: WatcherResults) {
-  // data for one build
+  // do a full build if there is no watcher
+  // or the watcher said the config has updated
+  const requiresFullBuild = !watcher || watcher.configUpdated;
+
   const isRebuild = !!watcher;
   compilerCtx.isRebuild = isRebuild;
 
@@ -13,7 +16,9 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
   // increment the active build id
   compilerCtx.activeBuildId++;
 
+  // data for one build
   const buildCtx: BuildCtx = {
+    requiresFullBuild: requiresFullBuild,
     buildId: compilerCtx.activeBuildId,
     diagnostics: [],
     manifest: {},

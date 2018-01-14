@@ -15,7 +15,7 @@ export function validateServiceWorkerConfig(config: Config) {
 
   const swConfig: ServiceWorkerConfig = Object.assign({}, DEFAULT_SW_CONFIG, config.serviceWorker);
 
-  if (!swConfig.globDirectory) {
+  if (typeof swConfig.globDirectory !== 'string') {
     swConfig.globDirectory = config.wwwDir;
   }
 

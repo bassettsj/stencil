@@ -7,7 +7,6 @@ import { createRendererPatch } from '../core/renderer/patch';
 import { initHostElement } from '../core/instance/init-host-element';
 import { initComponentInstance } from '../core/instance/init-component-instance';
 import { MockFileSystem } from './mock-fs';
-import { NodeFileSystem } from '../sys/node/node-fs';
 import { noop } from '../util/helpers';
 import { validateBuildConfig } from '../util/validate-config';
 
@@ -84,6 +83,8 @@ export function mockConfig() {
 
 
 export function mockStencilSystem() {
+  const fs = mockFs();
+
   const sys: StencilSystem = {
 
     compiler: {
@@ -110,6 +111,8 @@ export function mockStencilSystem() {
       const isGlob = require('is-glob');
       return isGlob(str);
     },
+
+    fs: fs,
 
     minifyCss: mockMinify,
 
@@ -207,7 +210,7 @@ rollup.plugins = {
 
 
 export function mockFs() {
-  return new NodeFileSystem(new MockFileSystem());
+  return new MockFileSystem();
 }
 
 

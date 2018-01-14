@@ -5,7 +5,7 @@ export class NodeFileSystem implements FileSystem {
 
   constructor(private fs: any) {}
 
-  async copyFile(src: string, dest: string) {
+  copyFile(src: string, dest: string) {
     return new Promise<void>((resolve, reject) => {
       const input = this.fs.createReadStream(src);
       const output = input.pipe(this.fs.createWriteStream(dest));
@@ -16,7 +16,7 @@ export class NodeFileSystem implements FileSystem {
     });
   }
 
-  async mkdir(filePath: string) {
+  mkdir(filePath: string) {
     return new Promise<void>((resolve, reject) => {
       this.fs.mkdir(filePath, (err: any) => {
         if (err) {
@@ -28,19 +28,23 @@ export class NodeFileSystem implements FileSystem {
     });
   }
 
-  async readdir(dirPath: string) {
+  readdir(dirPath: string) {
+    console.log('node readdir', dirPath)
     return new Promise<string[]>((resolve, reject) => {
+      console.log('node readdir2', dirPath)
       this.fs.readdir(dirPath, (err: any, files: any) => {
         if (err) {
+          console.log('node err', err)
           reject(err);
         } else {
+          console.log('node files', files)
           resolve(files);
         }
       });
     });
   }
 
-  async readFile(filePath: string) {
+  readFile(filePath: string) {
     return new Promise<string>((resolve, reject) => {
       this.fs.readFile(filePath, 'utf-8', (err: any, content: any) => {
         if (err) {
@@ -56,7 +60,7 @@ export class NodeFileSystem implements FileSystem {
     return this.fs.readFileSync(filePath, 'utf-8');
   }
 
-  async rmdir(filePath: string) {
+  rmdir(filePath: string) {
     return new Promise<void>((resolve, reject) => {
       this.fs.rmdir(filePath, (err: any) => {
         if (err) {
@@ -68,7 +72,7 @@ export class NodeFileSystem implements FileSystem {
     });
   }
 
-  async stat(itemPath: string) {
+  stat(itemPath: string) {
     return new Promise<any>((resolve, reject) => {
       this.fs.stat(itemPath, (err: any, stats: any) => {
         if (err) {
@@ -84,7 +88,7 @@ export class NodeFileSystem implements FileSystem {
     return this.fs.statSync(itemPath);
   }
 
-  async unlink(filePath: string) {
+  unlink(filePath: string) {
     return new Promise<void>((resolve, reject) => {
       this.fs.unlink(filePath, (err: any) => {
         if (err) {
@@ -96,7 +100,7 @@ export class NodeFileSystem implements FileSystem {
     });
   }
 
-  async writeFile(filePath: string, content: string) {
+  writeFile(filePath: string, content: string) {
     return new Promise<void>((resolve, reject) => {
       this.fs.writeFile(filePath, content, { encoding: 'utf-8' }, (err: any) => {
         if (err) {

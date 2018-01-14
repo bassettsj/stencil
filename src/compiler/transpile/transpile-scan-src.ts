@@ -5,7 +5,7 @@ import { transpileModules } from '../transpile/transpile';
 
 
 export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
-  if (canSkipTranspile(config, buildCtx)) {
+  if (canSkipTranspiling(config, buildCtx)) {
     // this is a rebuild, but turns out the files causing to
     // do not require us to run the transpiling again
     return;
@@ -42,38 +42,33 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
 }
 
 
-function scanDir(config: Config, fs: InMemoryFileSystem, tsFilePaths: string[], dir: string): Promise<any> {
+async function scanDir(config: Config, fs: InMemoryFileSystem, tsFilePaths: string[], dir: string): Promise<any> {
   // loop through this directory and sub directories looking for
   // files that need to be transpiled
-  return fs.readdir(dir).then(dirItems => {
+  const dirItems = await fs.readdir(dir);
 
-    return Promise.all(dirItems.map(dirItem => {
-      // let's loop through each of the files we've found so far
-      const itemPath = pathJoin(config, dir, dirItem);
+  await Promise.all(dirItems.map(async dirItem => {
+    // let's loop through each of the files we've found so far
+    const itemPath = pathJoin(config, dir, dirItem);
 
-      // get the fs stats for the item, could be either a file or directory
-      return fs.stat(itemPath).then(s => {
-        if (s.isDirectory()) {
-          // looks like it's yet another directory
-          // let's keep drilling down
-          return scanDir(config, fs, tsFilePaths, itemPath);
+    // get the fs stats for the item, could be either a file or directory
+    const s = await fs.stat(itemPath);
 
-        } else if (s.isFile() && isFileIncludePath(config, itemPath)) {
-          // woot! we found a typescript file that needs to be transpiled
-          // add this file to our collection of ts paths to transpile
-          tsFilePaths.push(itemPath);
+    if (s.isDirectory()) {
+      // looks like it's yet another directory
+      // let's keep drilling down
+      await scanDir(config, fs, tsFilePaths, itemPath);
 
-          // let's async read and cache the source file so it get's loaded up
-          // into our in-memory file system to be used later during the actual transpile
-          return fs.readFile(itemPath);
-        }
+    } else if (s.isFile() && isFileIncludePath(config, itemPath)) {
+      // woot! we found a typescript file that needs to be transpiled
+      // add this file to our collection of ts paths to transpile
+      tsFilePaths.push(itemPath);
 
-        // not a directory and it's not a typescript file, so do nothing
-        return Promise.resolve();
-      });
-
-    }));
-  });
+      // let's async read and cache the source file so it get's loaded up
+      // into our in-memory file system to be used later during the actual transpile
+      await fs.readFile(itemPath);
+    }
+  }));
 }
 
 
@@ -90,26 +85,26 @@ function removeDeletedModules(cachedModuleFiles: ModuleFiles, currentTsFilePaths
 }
 
 
-function canSkipTranspile(config: Config, buildCtx: BuildCtx) {
-  if (!buildCtx.watcher) {
-    // not a rebuild from a watch, so we cannot skip transpile
+function canSkipTranspiling(config: Config, buildCtx: BuildCtx) {
+  if (buildCtx.requiresFullBuild) {
+    // requires a full rebuild, so we cannot skip transpiling
     return false;
   }
 
   if (buildCtx.watcher.dirsAdded.length > 0 || buildCtx.watcher.dirsDeleted.length > 0) {
     // if a directory was added or deleted
-    // then we cannot skip transpile
+    // then we cannot skip transpiling
     return false;
   }
 
   const isTsFileInChangedFiles = buildCtx.watcher.filesChanged.some(filePath => {
-    // do a transpile rebuild if one of the changed files is a ts file
+    // do transpiling if one of the changed files is a ts file
     // and the changed file is not the components.d.ts file
     // when the components.d.ts file is written to disk it shouldn't cause a new build
     return isFileIncludePath(config, filePath);
   });
 
-  // we can skip the transpile if there are no ts files that are changed
+  // we can skip transpiling if there are no ts files that have changed
   return !isTsFileInChangedFiles;
 }
 

@@ -62,17 +62,17 @@ export class InMemoryFileSystem {
     const stats = await this.stat(src);
 
     if (stats.isDirectory()) {
-      return this.copyDir(src, dest, opts);
+      await this.copyDir(src, dest, opts);
 
     } else if (stats.isFile()) {
-      return this.copyFile(src, dest, opts);
+      await this.copyFile(src, dest, opts);
     }
   }
 
-  async copyDir(src: string, dest: string, opts?: { filter?: (src: string, dest?: string) => boolean; }): Promise<any> {
+  async copyDir(src: string, dest: string, opts?: { filter?: (src: string, dest?: string) => boolean; }) {
     const dirItems = await this.readdir(src);
 
-    return Promise.all(dirItems.map(dirItem => {
+    await Promise.all(dirItems.map(dirItem => {
       const srcPath = normalizePath(this.path.join(src, dirItem));
       const destPath = normalizePath(this.path.join(dest, dirItem));
 
@@ -106,11 +106,10 @@ export class InMemoryFileSystem {
 
     await this.removeDir(dirPath);
 
-    this.d[dirPath] = {
-      isFile: false,
-      isDirectory: true,
-      queueWriteToDisk: true
-    };
+    this.d[dirPath] = this.d[dirPath] || {};
+    this.d[dirPath].isFile = false;
+    this.d[dirPath].isDirectory = true;
+    this.d[dirPath].queueWriteToDisk = true;
   }
 
   async readdir(dirPath: string) {
@@ -118,17 +117,16 @@ export class InMemoryFileSystem {
 
     // always a disk read
     const dirItems = await this.fs.readdir(dirPath);
-    this.d[dirPath] = {
-      exists: true,
-      isFile: false,
-      isDirectory: true
-    };
+
+    this.d[dirPath] = this.d[dirPath] || {};
+    this.d[dirPath].exists = true;
+    this.d[dirPath].isFile = false;
+    this.d[dirPath].isDirectory = true;
 
     dirItems.forEach(f => {
-      const dirItem = this.path.join(dirPath, f);
-      this.d[dirItem] = {
-        exists: true
-      };
+      const dirItem = normalizePath(this.path.join(dirPath, f));
+      this.d[dirItem] = this.d[dirItem] || {};
+      this.d[dirItem].exists = true;
     });
     return dirItems;
   }
@@ -169,14 +167,13 @@ export class InMemoryFileSystem {
     return fileContent;
   }
 
-  async removeDir(dirPath: string): Promise<any> {
+  removeDir(dirPath: string): Promise<any> {
     dirPath = normalizePath(dirPath);
 
-    this.d[dirPath] = {
-      isFile: false,
-      isDirectory: true,
-      queueDeleteFromDisk: true
-    };
+    this.d[dirPath] = this.d[dirPath] || {};
+    this.d[dirPath].isFile = false;
+    this.d[dirPath].isDirectory = true;
+    this.d[dirPath].queueDeleteFromDisk = true;
 
     return this.fs.readdir(dirPath).then(dirItems => {
 
@@ -347,31 +344,29 @@ export class InMemoryFileSystem {
     return dirsAdded;
   }
 
-  private async commitWriteFiles(filesToWrite: string[]) {
+  private commitWriteFiles(filesToWrite: string[]) {
     return Promise.all(filesToWrite.map(async filePath => {
       const item = this.d[filePath];
-
       await this.fs.writeFile(filePath, item.fileText);
-
       return filePath;
     }));
   }
 
-  private async commitDeleteFiles(filesToDelete: string[]) {
+  private commitDeleteFiles(filesToDelete: string[]) {
     return Promise.all(filesToDelete.map(async filePath => {
       await this.fs.unlink(filePath);
       return filePath;
     }));
   }
 
-  private async commitDeleteDirs(dirsToDelete: string[]) {
+  private commitDeleteDirs(dirsToDelete: string[]) {
     return Promise.all(dirsToDelete.map(async dirPath => {
       await this.fs.rmdir(dirPath);
       return dirPath;
     }));
   }
 
-  private async commitCopyFiles(copyFileTasks: FsCopyFileTask[]) {
+  private commitCopyFiles(copyFileTasks: FsCopyFileTask[]) {
     return Promise.all(copyFileTasks.map(async copyFileTask => {
       await this.fs.copyFile(copyFileTask.src, copyFileTask.dest);
       return copyFileTask.dest;

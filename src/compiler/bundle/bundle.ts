@@ -1,10 +1,9 @@
 import { BuildCtx, Bundle, CompilerCtx, ComponentMeta, Config, Diagnostic, ManifestBundle, ModuleFile } from '../../util/interfaces';
 import { buildError, catchError } from '../util';
 import { bundleModules } from './bundle-modules';
-import { bundleStyles } from './bundle-styles';
 import { DEFAULT_STYLE_MODE, ENCAPSULATION } from '../../util/constants';
-import { upgradeDependentComponents } from '../upgrade-dependents/index';
 import { requiresScopedStyles } from './component-styles';
+import { upgradeDependentComponents } from '../upgrade-dependents/index';
 
 
 export async function bundle(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
@@ -18,7 +17,7 @@ export async function bundle(config: Config, compilerCtx: CompilerCtx, buildCtx:
     config.logger.debug(`bundle, distDir: ${config.distDir}`);
   }
 
-  const timeSpan = config.logger.createTimeSpan(`bundle started`, true);
+  const timeSpan = config.logger.createTimeSpan(`bundling started`, true);
 
   try {
     // get all of the bundles from the manifest bundles
@@ -26,19 +25,16 @@ export async function bundle(config: Config, compilerCtx: CompilerCtx, buildCtx:
 
     // Look at all dependent components from outside collections and
     // upgrade the components to be compatible with this version if need be
-    await upgradeDependentComponents(config, compilerCtx, bundles);
+    await upgradeDependentComponents(config, compilerCtx, buildCtx, bundles);
 
     // kick off style and module bundling at the same time
-    await Promise.all([
-      bundleStyles(config, compilerCtx, buildCtx, bundles),
-      bundleModules(config, compilerCtx, buildCtx, bundles)
-    ]);
+    await bundleModules(config, compilerCtx, buildCtx, bundles);
 
   } catch (e) {
     catchError(buildCtx.diagnostics, e);
   }
 
-  timeSpan.finish(`bundle finished`);
+  timeSpan.finish(`bundling finished`);
 
   return bundles;
 }

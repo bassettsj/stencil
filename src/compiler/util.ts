@@ -26,7 +26,11 @@ export function getCompilerCtx(sys: StencilSystem, compilerCtx: CompilerCtx = {}
   return compilerCtx;
 }
 
-
+/**
+ * Test if a file is a typescript source file, such as .ts or .tsx.
+ * However, d.ts files and spec.ts files return false.
+ * @param filePath
+ */
 export function isTsFile(filePath: string) {
   const parts = filePath.toLowerCase().split('.');
   if (parts.length > 1) {
