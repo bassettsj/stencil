@@ -9,13 +9,24 @@ export class MockFileSystem implements FileSystem {
   diskWrites = 0;
   diskReads = 0;
 
-  async copyFile(_srcPath: string, _destPath: string) {
+  async copyFile(srcPath: string, destPath: string) {
+    this.diskReads++;
+
+    if (!this.data[srcPath]) {
+      throw new Error(`copyFile, srcPath doesn't exists: ${srcPath}`);
+    }
+
     this.diskWrites++;
+    this.data[destPath] = this.data[srcPath];
   }
 
   async mkdir(dirPath: string) {
     dirPath = normalizePath(dirPath);
     this.diskWrites++;
+
+    if (this.data[dirPath]) {
+      throw new Error(`mkdir, dir already exists: ${dirPath}`);
+    }
 
     this.data[dirPath] = {
       isDirectory: true,
@@ -26,6 +37,10 @@ export class MockFileSystem implements FileSystem {
   async readdir(dirPath: string) {
     dirPath = normalizePath(dirPath);
     this.diskReads++;
+
+    if (!this.data[dirPath]) {
+      throw new Error(`readdir, dir doesn't exists: ${dirPath}`);
+    }
 
     const filePaths = Object.keys(this.data);
     const dirs: string[] = [];
@@ -52,13 +67,17 @@ export class MockFileSystem implements FileSystem {
     if (this.data[filePath] && typeof this.data[filePath].content === 'string') {
       return this.data[filePath].content;
     }
-    throw new Error(`doesn't exist: ${filePath}`);
+    throw new Error(`readFile, path doesn't exist: ${filePath}`);
   }
 
   async rmdir(dirPath: string) {
     dirPath = normalizePath(dirPath);
-    const items = Object.keys(this.data);
-    items.forEach(item => {
+
+    if (!this.data[dirPath]) {
+      throw new Error(`rmdir, dir doesn't exists: ${dirPath}`);
+    }
+
+    Object.keys(this.data).forEach(item => {
       if (item.startsWith(dirPath + '/') || item === dirPath) {
         this.diskWrites++;
         delete this.data[item];
@@ -66,27 +85,32 @@ export class MockFileSystem implements FileSystem {
     });
   }
 
-  async stat(filePath: string) {
-    return this.statSync(filePath);
+  async stat(itemPath: string) {
+    return this.statSync(itemPath);
   }
 
-  statSync(filePath: string) {
-    filePath = normalizePath(filePath);
+  statSync(itemPath: string) {
+    itemPath = normalizePath(itemPath);
     this.diskReads++;
-    if (this.data[filePath]) {
-      const isDirectory = this.data[filePath].isDirectory;
-      const isFile = this.data[filePath].isFile;
+    if (this.data[itemPath]) {
+      const isDirectory = this.data[itemPath].isDirectory;
+      const isFile = this.data[itemPath].isFile;
       return  {
         isDirectory: () => isDirectory,
         isFile: () => isFile
       };
     }
-    throw new Error(`doesn't exist: ${filePath}`);
+    throw new Error(`stat, path doesn't exist: ${itemPath}`);
   }
 
   async unlink(filePath: string) {
     filePath = normalizePath(filePath);
     this.diskWrites++;
+
+    if (!this.data[filePath]) {
+      throw new Error(`unlink, file doesn't exists: ${filePath}`);
+    }
+
     delete this.data[filePath];
   }
 

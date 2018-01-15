@@ -29,97 +29,135 @@ export class WatcherListener {
     this.compilerCtx.events.subscribe('dirDelete', this.dirDelete.bind(this));
   }
 
-  fileUpdate(path: string) {
-    path = normalizePath(path);
+  async fileUpdate(path: string) {
+    try {
+      path = normalizePath(path);
 
-    this.config.logger.debug(`watcher, fileUpdate: ${path}, ${Date.now()}`);
+      this.config.logger.debug(`watcher, fileUpdate: ${path}, ${Date.now()}`);
 
-    // do not clear this file's cache cuz we'll
-    // check later if it actually changed
-    // before we kick off a new build
+      if (path === this.config.configPath) {
+        // the actual stencil config file changed
+        // this is a big deal, so do a full rebuild
+        configFileReload(this.config);
+        this.configUpdated = true;
+        this.filesUpdated.push(path);
+        this.queue();
 
-    if (path === this.config.configPath) {
-      // the actual stencil config file changed
-      // this is a big deal, so do a full rebuild
-      configFileReload(this.config);
-      this.configUpdated = true;
-      this.filesUpdated.push(path);
-      this.queue();
+      } else if (isCopyTaskFile(this.config, path)) {
+        this.queueCopyTasks();
 
-    } else if (isCopyTaskFile(this.config, path)) {
-      this.queueCopyTasks();
+      } else if (isWebDevFileToWatch(path)) {
+        // read the file, but without using
+        // the cache so we get the latest change
+        await this.compilerCtx.fs.readFile(path, { useCache: false });
 
-    } else if (isWebDevFileToWatch(path)) {
-      // web dev file was updaed
-      // queue change build
-      this.filesUpdated.push(path);
-      this.queue();
+        // web dev file was updaed
+        // queue change build
+        this.filesUpdated.push(path);
+        this.queue();
+      }
+
+    } catch (e) {
+      this.config.logger.error(`watcher, fileUpdate: ${e}`);
     }
   }
 
-  fileAdd(path: string) {
-    path = normalizePath(path);
+  async fileAdd(path: string) {
+    try {
+      path = normalizePath(path);
 
-    this.config.logger.debug(`watcher, fileAdd: ${path}, ${Date.now()}`);
+      this.config.logger.debug(`watcher, fileAdd: ${path}, ${Date.now()}`);
 
-    this.compilerCtx.fs.clearFileCache(path);
+      if (isCopyTaskFile(this.config, path)) {
+        this.queueCopyTasks();
 
-    if (isCopyTaskFile(this.config, path)) {
-      this.queueCopyTasks();
+      } else if (isWebDevFileToWatch(path)) {
+        // read the file, but without using
+        // the cache so we get the latest change
+        await this.compilerCtx.fs.readFile(path, { useCache: false });
 
-    } else if (isWebDevFileToWatch(path)) {
-      // new web dev file was added
-      this.filesAdded.push(path);
-      this.queue();
+        // new web dev file was added
+        this.filesAdded.push(path);
+        this.queue();
+      }
+
+    } catch (e) {
+      this.config.logger.error(`watcher, fileAdd: ${e}`);
     }
   }
 
   fileDelete(path: string) {
-    path = normalizePath(path);
+    try {
+      path = normalizePath(path);
 
-    this.config.logger.debug(`watcher, fileDelete: ${path}, ${Date.now()}`);
+      this.config.logger.debug(`watcher, fileDelete: ${path}, ${Date.now()}`);
 
-    this.compilerCtx.fs.clearFileCache(path);
+      // clear this file's cache
+      this.compilerCtx.fs.clearFileCache(path);
 
-    if (isCopyTaskFile(this.config, path)) {
-      this.queueCopyTasks();
+      if (isCopyTaskFile(this.config, path)) {
+        this.queueCopyTasks();
 
-    } else if (isWebDevFileToWatch(path)) {
-      // web dev file was delete
-      this.filesDeleted.push(path);
-      this.queue();
+      } else if (isWebDevFileToWatch(path)) {
+        // web dev file was delete
+        this.filesDeleted.push(path);
+        this.queue();
+      }
+
+    } catch (e) {
+      this.config.logger.error(`watcher, fileDelete: ${e}`);
     }
   }
 
-  dirAdd(path: string) {
-    path = normalizePath(path);
+  async dirAdd(path: string) {
+    try {
+      path = normalizePath(path);
 
-    this.config.logger.debug(`watcher, dirAdd: ${path}, ${Date.now()}`);
+      this.config.logger.debug(`watcher, dirAdd: ${path}, ${Date.now()}`);
 
-    this.compilerCtx.fs.clearDirCache(path);
+      // clear this directory's cache for good measure
+      this.compilerCtx.fs.clearDirCache(path);
 
-    if (isCopyTaskFile(this.config, path)) {
-      this.queueCopyTasks();
+      if (isCopyTaskFile(this.config, path)) {
+        this.queueCopyTasks();
 
-    } else {
-      this.dirsAdded.push(path);
-      this.queue();
+      } else {
+        // recursively drill down and get all of the
+        // files paths that were just added
+        const addedItems = await this.compilerCtx.fs.readdir(path, { recursive: true });
+
+        addedItems.forEach(item => {
+          this.filesAdded.push(item.absPath);
+        });
+
+        this.dirsAdded.push(path);
+        this.queue();
+      }
+
+    } catch (e) {
+      this.config.logger.error(`watcher, dirAdd: ${e}`);
     }
   }
 
-  dirDelete(path: string) {
-    path = normalizePath(path);
+  async dirDelete(path: string) {
+    try {
+      path = normalizePath(path);
 
-    this.config.logger.debug(`watcher, dirDelete: ${path}, ${Date.now()}`);
+      this.config.logger.debug(`watcher, dirDelete: ${path}, ${Date.now()}`);
 
-    this.compilerCtx.fs.clearDirCache(path);
+      // clear this directory's cache
+      this.compilerCtx.fs.clearDirCache(path);
 
-    if (isCopyTaskFile(this.config, path)) {
-      this.queueCopyTasks();
+      if (isCopyTaskFile(this.config, path)) {
+        this.queueCopyTasks();
 
-    } else {
-      this.dirsDeleted.push(path);
-      this.queue();
+      } else {
+        this.dirsDeleted.push(path);
+        this.queue();
+      }
+
+    } catch (e) {
+      this.config.logger.error(`dirDelete, dirAdd: ${e}`);
     }
   }
 
@@ -146,7 +184,7 @@ export class WatcherListener {
       filesAdded: this.filesAdded.slice(),
       filesDeleted: this.filesDeleted.slice(),
       filesUpdated: this.filesUpdated.slice(),
-      filesChanged: this.filesUpdated.concat(this.filesUpdated, this.filesDeleted),
+      filesChanged: this.filesUpdated.concat(this.filesAdded, this.filesDeleted),
       configUpdated: this.configUpdated
     };
     return watcherResults;

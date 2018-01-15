@@ -1,5 +1,5 @@
 import { BuildCtx, Bundle, Config, CompilerCtx, ModuleFile } from '../../util/interfaces';
-import { catchError, hasError } from '../util';
+import { catchError, hasError, isTsFile } from '../util';
 import { generateEsModule, generateLegacyModule, runRollup } from './rollup-bundle';
 
 
@@ -12,8 +12,8 @@ export async function bundleModules(config: Config, compilerCtx: CompilerCtx, bu
   const timeSpan = config.logger.createTimeSpan(`bundle modules started`, true);
 
   try {
-    await Promise.all(bundles.map(bundle => {
-      return generateComponentModules(config, compilerCtx, buildCtx, bundle);
+    await Promise.all(bundles.map(async bundle => {
+      await generateComponentModules(config, compilerCtx, buildCtx, bundle);
     }));
 
   } catch (err) {
@@ -25,12 +25,11 @@ export async function bundleModules(config: Config, compilerCtx: CompilerCtx, bu
 
 
 export async function generateComponentModules(config: Config, contextCtx: CompilerCtx, buildCtx: BuildCtx, bundles: Bundle) {
-  if (canSkipBuild(config, contextCtx, bundles.moduleFiles, bundles.entryKey)) {
-    // don't bother bundling if this is a change build but
-    // none of the changed files are modules or components
+  if (canSkipBundle(config, contextCtx, buildCtx, bundles.moduleFiles, bundles.entryKey)) {
+    // we can skip bundling, let's use our cached data
     bundles.compiledModuleText = contextCtx.moduleBundleOutputs[bundles.entryKey];
     bundles.compiledModuleLegacyText = contextCtx.moduleBundleLegacyOutputs[bundles.entryKey];
-    return Promise.resolve();
+    return;
   }
 
   // keep track of module bundling for testing
@@ -57,34 +56,45 @@ export async function generateComponentModules(config: Config, contextCtx: Compi
 }
 
 
-export function canSkipBuild(_config: Config, _ctx: CompilerCtx, _moduleFiles: ModuleFile[], _cacheKey: string) {
-  // // must build if it's not a change build
-  // if (!ctx.isChangeBuild) {
-  //   return false;
-  // }
+export function canSkipBundle(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, moduleFiles: ModuleFile[], cacheKey: string) {
+  if (!buildCtx.requiresFullBuild) {
+    // cannot skip if this is a full build
+    return false;
+  }
 
-  // // cannot skip if there isn't anything cached
-  // if (!ctx.moduleBundleOutputs[cacheKey]) {
-  //   return false;
-  // }
+  if (!compilerCtx.moduleBundleOutputs[cacheKey]) {
+    // cannot skip if there isn't anything cached
+    return false;
+  }
 
-  // // must rebuild if it's non-component changes
-  // // basically don't know of deps of deps changed, so play it safe
-  // if (ctx.changeHasNonComponentModules) {
-  //   return false;
-  // }
+  if (!buildCtx.filesChanged.some(isTsFile)) {
+    // skip if there wasn't a ts file change
+    return true;
+  }
 
-  // // ok to skip if it wasn't a component module change
-  // if (!ctx.changeHasComponentModules) {
-  //   return true;
-  // }
+  // get a list of filepaths that are components
+  const componentFilePaths = Object.keys(compilerCtx.moduleFiles).filter(filePath => {
+    return !!(compilerCtx.moduleFiles[filePath].cmpMeta);
+  });
+
+  const isNonComponentTsFileChange = componentFilePaths.some(componentFilePath => {
+    return buildCtx.filesChanged.some(changedFilePath => changedFilePath === componentFilePath);
+  });
+
+  if (isNonComponentTsFileChange) {
+    // if the changed file is a typescript file
+    // and the typescript file isn't a component then
+    // we must do a rebuild. Basically we don't know if this
+    // typescript file affects this bundle or not
+    return false;
+  }
 
   // check if this bundle has one of the changed files
-  // const bundleContainsChangedFile = bundledComponentContainsChangedFile(config, moduleFiles, ctx.changedFiles);
-  // if (!bundleContainsChangedFile) {
-  //   // don't bother bundling, none of the changed files have the same filename
-  //   return true;
-  // }
+  const bundleContainsChangedFile = bundledComponentContainsChangedFile(config, moduleFiles, buildCtx.filesChanged);
+  if (!bundleContainsChangedFile) {
+    // don't bother bundling, none of the changed files have the same filename
+    return true;
+  }
 
   // idk, probs need to bundle, can't skip
   return false;

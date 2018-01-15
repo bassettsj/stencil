@@ -54,17 +54,16 @@ function createDoUpgrade(config: Config, compilerCtx: CompilerCtx, bundles: Bund
     }
 
     await Promise.all(manifest.modulesFiles.map(async moduleFile => {
-      const source = await compilerCtx.fs.readFile(moduleFile.jsFilePath);
-
-      let output = '';
 
       try {
-        output = transformSourceString(moduleFile.jsFilePath, source, upgradeTransforms);
+        const source = await compilerCtx.fs.readFile(moduleFile.jsFilePath);
+        const output = transformSourceString(moduleFile.jsFilePath, source, upgradeTransforms);
+        await compilerCtx.fs.writeFile(moduleFile.jsFilePath, output, { inMemoryOnly: true });
+
       } catch (e) {
         config.logger.error(`error performing compiler upgrade on ${moduleFile.jsFilePath}: ${e}`);
       }
 
-      await compilerCtx.fs.writeFile(moduleFile.jsFilePath, output, { inMemoryOnly: true });
     }));
   };
 }

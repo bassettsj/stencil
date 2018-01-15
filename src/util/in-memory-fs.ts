@@ -1,4 +1,5 @@
-import { FileSystem, FileSystemWriteOptions, FsItems, FsCopyFileTask, Path } from './interfaces';
+import { FileSystem, FileSystemReadDirItem, FileSystemReadOptions, FileSystemWriteOptions,
+  FsItems, FsCopyFileTask, Path, FileSystemReadDirOptions } from './interfaces';
 import { normalizePath } from '../compiler/util';
 
 
@@ -70,20 +71,21 @@ export class InMemoryFileSystem {
   }
 
   async copyDir(src: string, dest: string, opts?: { filter?: (src: string, dest?: string) => boolean; }) {
-    const dirItems = await this.readdir(src);
+    src = normalizePath(src);
+    dest = normalizePath(dest);
 
-    await Promise.all(dirItems.map(dirItem => {
-      const srcPath = normalizePath(this.path.join(src, dirItem));
-      const destPath = normalizePath(this.path.join(dest, dirItem));
+    const dirItems = await this.readdir(src, { recursive: true });
 
-      return this.stat(srcPath).then(s => {
-        if (s.isDirectory()) {
-          return this.copyDir(srcPath, destPath, opts);
-        } else if (s.isFile()) {
-          return this.copyFile(srcPath, destPath, opts);
-        }
-        return Promise.resolve();
-      });
+    await Promise.all(dirItems.map(async dirItem => {
+      const srcPath = dirItem.absPath;
+      const destPath = normalizePath(this.path.join(dest, dirItem.relPath));
+
+      if (dirItem.isDirectory) {
+        await this.copyDir(srcPath, destPath, opts);
+
+      } else if (dirItem.isFile) {
+        await this.copyFile(srcPath, destPath, opts);
+      }
     }));
   }
 
@@ -112,35 +114,72 @@ export class InMemoryFileSystem {
     this.d[dirPath].queueWriteToDisk = true;
   }
 
-  async readdir(dirPath: string) {
+  async readdir(dirPath: string, opts: FileSystemReadDirOptions = {}) {
     dirPath = normalizePath(dirPath);
 
+    const collectedPaths: FileSystemReadDirItem[] = [];
+
     // always a disk read
+    await this.readDirectory(dirPath, dirPath, opts, collectedPaths);
+
+    return collectedPaths;
+  }
+
+  private async readDirectory(initPath: string, dirPath: string, opts: FileSystemReadDirOptions, collectedPaths: FileSystemReadDirItem[]) {
+    // used internally only so we could easily recursively drill down
+    // loop through this directory and sub directories
+    // always a disk read!!
     const dirItems = await this.fs.readdir(dirPath);
 
+    // cache some facts about this path
     this.d[dirPath] = this.d[dirPath] || {};
     this.d[dirPath].exists = true;
     this.d[dirPath].isFile = false;
     this.d[dirPath].isDirectory = true;
 
-    dirItems.forEach(f => {
-      const dirItem = normalizePath(this.path.join(dirPath, f));
-      this.d[dirItem] = this.d[dirItem] || {};
-      this.d[dirItem].exists = true;
-    });
-    return dirItems;
+    await Promise.all(dirItems.map(async dirItem => {
+      // let's loop through each of the files we've found so far
+      // create an absolute path of the item inside of this directory
+      const absPath = normalizePath(this.path.join(dirPath, dirItem));
+      const relPath = normalizePath(this.path.relative(initPath, absPath));
+
+      // get the fs stats for the item, could be either a file or directory
+      const stats = await this.stat(absPath);
+
+      // cache some stats about this path
+      this.d[absPath] = this.d[absPath] || {};
+      this.d[absPath].exists = true;
+      this.d[absPath].isDirectory = stats.isDirectory();
+      this.d[absPath].isFile = stats.isFile();
+
+      collectedPaths.push({
+        absPath: absPath,
+        relPath: relPath,
+        isDirectory: stats.isDirectory(),
+        isFile: stats.isFile()
+      });
+
+      if (opts.recursive && stats.isDirectory()) {
+        // looks like it's yet another directory
+        // let's keep drilling down
+        await this.readDirectory(initPath, absPath, opts, collectedPaths);
+      }
+    }));
   }
 
-  async readFile(filePath: string) {
+  async readFile(filePath: string, opts?: FileSystemReadOptions) {
     filePath = normalizePath(filePath);
-    let f = this.d[filePath];
-    if (f && f.exists && typeof f.fileText === 'string') {
-      return f.fileText;
+
+    if (!opts || (opts.useCache === true || opts.useCache === undefined)) {
+      const f = this.d[filePath];
+      if (f && f.exists && typeof f.fileText === 'string') {
+        return f.fileText;
+      }
     }
 
     const fileContent = await this.fs.readFile(filePath, 'utf-8');
 
-    f = this.d[filePath] = this.d[filePath] || {};
+    const f = this.d[filePath] = this.d[filePath] || {};
     f.exists = true;
     f.isFile = true;
     f.isDirectory = false;
@@ -167,7 +206,7 @@ export class InMemoryFileSystem {
     return fileContent;
   }
 
-  removeDir(dirPath: string): Promise<any> {
+  async removeDir(dirPath: string): Promise<any> {
     dirPath = normalizePath(dirPath);
 
     this.d[dirPath] = this.d[dirPath] || {};
@@ -175,23 +214,21 @@ export class InMemoryFileSystem {
     this.d[dirPath].isDirectory = true;
     this.d[dirPath].queueDeleteFromDisk = true;
 
-    return this.fs.readdir(dirPath).then(dirItems => {
+    try {
+      const dirItems = await this.readdir(dirPath, { recursive: true });
 
-      return Promise.all(dirItems.map(dirItem => {
-        const itemPath = this.path.join(dirPath, dirItem);
+      await dirItems.forEach(async item => {
+        if (item.isDirectory) {
+          await this.removeDir(item.absPath);
 
-        return this.fs.stat(itemPath).then(s => {
-          if (s.isDirectory()) {
-            return this.removeDir(itemPath);
+        } else if (item.isFile) {
+          await this.removeFile(item.absPath);
+        }
+      });
 
-          } else if (s.isFile()) {
-            return this.removeFile(itemPath);
-          }
-          return Promise.resolve();
-        });
-
-      }));
-    });
+    } catch (e) {
+      // do not throw error if the directory never existed
+    }
   }
 
   async removeFile(filePath: string) {

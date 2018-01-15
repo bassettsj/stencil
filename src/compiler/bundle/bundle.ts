@@ -27,7 +27,7 @@ export async function bundle(config: Config, compilerCtx: CompilerCtx, buildCtx:
     // upgrade the components to be compatible with this version if need be
     await upgradeDependentComponents(config, compilerCtx, buildCtx, bundles);
 
-    // kick off style and module bundling at the same time
+    // kick off bundling
     await bundleModules(config, compilerCtx, buildCtx, bundles);
 
   } catch (e) {

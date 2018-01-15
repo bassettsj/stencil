@@ -510,7 +510,6 @@ export interface BuildCtx {
   bundleBuildCount: number;
   appFileBuildCount: number;
   indexBuildCount: number;
-  watcher: WatcherResults;
   components: string[];
   aborted: boolean;
   timeSpan: LoggerTimeSpan;
@@ -520,6 +519,9 @@ export interface BuildCtx {
   filesDeleted: string[];
   dirsDeleted: string[];
   dirsAdded: string[];
+  filesChanged: string[];
+  filesUpdated: string[];
+  filesAdded: string[];
 }
 
 
@@ -542,7 +544,6 @@ export interface BuildResults {
     filesUpdated?: string[];
     filesAdded?: string[];
     filesDeleted?: string[];
-    configUpdated?: boolean;
   };
 }
 
@@ -1235,6 +1236,24 @@ export interface FileSystem {
   unlink(filePath: string): Promise<void>;
   writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions): Promise<void>;
   writeFileSync(filePath: string, content: string, opts?: FileSystemWriteOptions): void;
+}
+
+
+export interface FileSystemReadOptions {
+  useCache?: boolean;
+}
+
+
+export interface FileSystemReadDirOptions {
+  recursive?: boolean;
+}
+
+
+export interface FileSystemReadDirItem {
+  absPath: string;
+  relPath: string;
+  isDirectory: boolean;
+  isFile: boolean;
 }
 
 

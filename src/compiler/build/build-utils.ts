@@ -27,16 +27,18 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
     bundleBuildCount: 0,
     appFileBuildCount: 0,
     indexBuildCount: 0,
-    watcher: watcher,
     aborted: false,
     startTime: Date.now(),
     timeSpan: config.logger.createTimeSpan(msg),
     components: [],
     filesWritten: [],
     filesCopied: [],
-    filesDeleted: [],
-    dirsDeleted: [],
-    dirsAdded: [],
+    filesChanged: watcher ? watcher.filesChanged : [],
+    filesUpdated: watcher ? watcher.filesUpdated : [],
+    filesAdded: watcher ? watcher.filesAdded : [],
+    filesDeleted: watcher ? watcher.filesDeleted : [],
+    dirsDeleted: watcher ? watcher.dirsDeleted : [],
+    dirsAdded: watcher ? watcher.dirsAdded : [],
   };
 
   return buildCtx;
@@ -110,26 +112,14 @@ function generateBuildResultsStats(compilerCtx: CompilerCtx, buildCtx: BuildCtx,
     transpileBuildCount: buildCtx.transpileBuildCount,
     bundleBuildCount: buildCtx.bundleBuildCount,
     styleBuildCount: buildCtx.styleBuildCount,
-    filesWritten: buildCtx.filesWritten.sort()
+    filesWritten: buildCtx.filesWritten.sort(),
+    filesChanged: buildCtx.filesChanged.slice().sort(),
+    filesUpdated: buildCtx.filesUpdated.slice().sort(),
+    filesAdded: buildCtx.filesAdded.slice().sort(),
+    filesDeleted: buildCtx.filesDeleted.slice().sort(),
+    dirsAdded: buildCtx.dirsAdded.slice().sort(),
+    dirsDeleted: buildCtx.dirsDeleted.slice().sort()
   };
-
-  if (buildCtx.watcher) {
-    buildResults.stats.filesChanged = buildCtx.watcher.filesChanged.slice().sort();
-    buildResults.stats.filesUpdated = buildCtx.watcher.filesUpdated.slice().sort();
-    buildResults.stats.filesAdded = buildCtx.watcher.filesAdded.slice().sort();
-    buildResults.stats.filesDeleted = buildCtx.watcher.filesDeleted.slice().sort();
-    buildResults.stats.dirsAdded = buildCtx.watcher.dirsAdded.slice().sort();
-    buildResults.stats.dirsDeleted = buildCtx.watcher.dirsDeleted.slice().sort();
-    buildResults.stats.configUpdated = buildCtx.watcher.configUpdated;
-  } else {
-    buildResults.stats.filesChanged = [];
-    buildResults.stats.filesUpdated = [];
-    buildResults.stats.filesAdded = [];
-    buildResults.stats.filesDeleted = [];
-    buildResults.stats.dirsAdded = [];
-    buildResults.stats.dirsDeleted = [];
-    buildResults.stats.configUpdated = false;
-  }
 }
 
 

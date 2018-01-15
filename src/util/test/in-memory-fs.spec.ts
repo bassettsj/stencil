@@ -308,13 +308,16 @@ describe(`in-memory-fs`, () => {
   });
 
   it(`readdir always does disk reads`, async () => {
+    await fs.writeFile(`/dir/file1.js`, `1`);
+    await fs.commit();
+
     let files = await fs.readdir(`/dir`);
     expect(mockFs.diskReads).toBe(1);
     files = await fs.readdir(`/dir`);
     expect(mockFs.diskReads).toBe(2);
   });
 
-  it(`readdir`, async () => {
+  it(`readdir, recursive`, async () => {
     await fs.writeFile(`/dir1/file1.js`, ``);
     await fs.writeFile(`/dir1/file2.js`, ``);
     await fs.writeFile(`/dir1/dir2/file1.js`, ``);
@@ -325,12 +328,45 @@ describe(`in-memory-fs`, () => {
     fs.clearCache();
     mockFs.diskReads = 0;
 
-    let files = await fs.readdir(`/dir1`);
-    expect(files.length).toBe(3);
-    expect(files[0]).toBe(`dir2`);
-    expect(files[1]).toBe(`file1.js`);
-    expect(files[2]).toBe(`file2.js`);
-    expect(mockFs.diskReads).toBe(1);
+    let items = await fs.readdir(`/dir1`, { recursive: true });
+    expect(items.length).toBe(5);
+    expect(items[0].absPath).toBe(`/dir1/dir2`);
+    expect(items[0].relPath).toBe(`dir2`);
+    expect(items[0].isDirectory).toBe(true);
+    expect(items[0].isFile).toBe(false);
+    expect(items[1].absPath).toBe(`/dir1/file1.js`);
+    expect(items[1].relPath).toBe(`file1.js`);
+    expect(items[1].isFile).toBe(true);
+    expect(items[1].isDirectory).toBe(false);
+    expect(items[2].absPath).toBe(`/dir1/file2.js`);
+    expect(items[3].absPath).toBe(`/dir1/dir2/file1.js`);
+    expect(items[4].absPath).toBe(`/dir1/dir2/file2.js`);
+    expect(mockFs.diskReads).toBe(7);
+  });
+
+  it(`readdir, no recursive`, async () => {
+    await fs.writeFile(`/dir1/file1.js`, ``);
+    await fs.writeFile(`/dir1/file2.js`, ``);
+    await fs.writeFile(`/dir1/dir2/file1.js`, ``);
+    await fs.writeFile(`/dir1/dir2/file2.js`, ``);
+    await fs.writeFile(`/dir2/dir3/file1.js`, ``);
+    await fs.writeFile(`/dir2/dir3/dir4/file2.js`, ``);
+    await fs.commit();
+    fs.clearCache();
+    mockFs.diskReads = 0;
+
+    let items = await fs.readdir(`/dir1`);
+    expect(items.length).toBe(3);
+    expect(items[0].absPath).toBe(`/dir1/dir2`);
+    expect(items[0].relPath).toBe(`dir2`);
+    expect(items[0].isDirectory).toBe(true);
+    expect(items[0].isFile).toBe(false);
+    expect(items[1].absPath).toBe(`/dir1/file1.js`);
+    expect(items[1].relPath).toBe(`file1.js`);
+    expect(items[1].isFile).toBe(true);
+    expect(items[1].isDirectory).toBe(false);
+    expect(items[2].absPath).toBe(`/dir1/file2.js`);
+    expect(mockFs.diskReads).toBe(4);
     mockFs.diskReads = 0;
 
     expect(await fs.access(`/dir1/file1.js`)).toBe(true);

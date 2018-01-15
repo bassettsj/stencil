@@ -1,5 +1,5 @@
 import { BuildCtx, CompilerCtx, Config, ModuleFiles } from '../../util/interfaces';
-import { catchError, pathJoin } from '../util';
+import { catchError } from '../util';
 import { InMemoryFileSystem } from '../../util/in-memory-fs';
 import { transpileModules } from '../transpile/transpile';
 
@@ -13,15 +13,12 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
 
   const timeSpan = config.logger.createTimeSpan(`compile started`);
 
-  // keep a collection of ts files to transpile
-  const tsFilePaths: string[] = [];
-
   try {
     // recursively scan all of the src directories
     // looking for typescript files to transpile
     // and read the files async and put into our
     // in-memory file system
-    await scanDir(config, compilerCtx.fs, tsFilePaths, config.srcDir);
+    const tsFilePaths = await getTsFilePaths(config, compilerCtx.fs, config.srcDir);
 
     // let's be sure to clean out the moduleFiles in the compiler context
     // some components may have been deleted since the last build
@@ -30,7 +27,7 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
     // found all the files we need to transpile
     // and have all the files in-memory and ready to go
     // go ahead and kick off transpiling
-    // process is NOT async
+    // transpiling process is NOT async
     transpileModules(config, compilerCtx, buildCtx, tsFilePaths);
 
   } catch (e) {
@@ -42,33 +39,24 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
 }
 
 
-async function scanDir(config: Config, fs: InMemoryFileSystem, tsFilePaths: string[], dir: string): Promise<any> {
+async function getTsFilePaths(config: Config, fs: InMemoryFileSystem, dir: string): Promise<any> {
   // loop through this directory and sub directories looking for
   // files that need to be transpiled
-  const dirItems = await fs.readdir(dir);
+  const dirItems = await fs.readdir(dir, { recursive: true });
 
-  await Promise.all(dirItems.map(async dirItem => {
-    // let's loop through each of the files we've found so far
-    const itemPath = pathJoin(config, dir, dirItem);
+  // filter down to only the ts files we should include
+  const tsFileItems = dirItems.filter(item => {
+    return item.isFile && isFileIncludePath(config, item.absPath);
+  });
 
-    // get the fs stats for the item, could be either a file or directory
-    const s = await fs.stat(itemPath);
-
-    if (s.isDirectory()) {
-      // looks like it's yet another directory
-      // let's keep drilling down
-      await scanDir(config, fs, tsFilePaths, itemPath);
-
-    } else if (s.isFile() && isFileIncludePath(config, itemPath)) {
-      // woot! we found a typescript file that needs to be transpiled
-      // add this file to our collection of ts paths to transpile
-      tsFilePaths.push(itemPath);
-
-      // let's async read and cache the source file so it get's loaded up
-      // into our in-memory file system to be used later during the actual transpile
-      await fs.readFile(itemPath);
-    }
+  // let's async read and cache the source file so it get's loaded up
+  // into our in-memory file system to be used later during the actual transpile
+  await Promise.all(tsFileItems.map(async tsFileItem => {
+    await fs.readFile(tsFileItem.absPath);
   }));
+
+  // return just the abs path
+  return tsFileItems.map(tsFileItem => tsFileItem.absPath);
 }
 
 
@@ -91,13 +79,13 @@ function canSkipTranspiling(config: Config, buildCtx: BuildCtx) {
     return false;
   }
 
-  if (buildCtx.watcher.dirsAdded.length > 0 || buildCtx.watcher.dirsDeleted.length > 0) {
+  if (buildCtx.dirsAdded.length > 0 || buildCtx.dirsDeleted.length > 0) {
     // if a directory was added or deleted
     // then we cannot skip transpiling
     return false;
   }
 
-  const isTsFileInChangedFiles = buildCtx.watcher.filesChanged.some(filePath => {
+  const isTsFileInChangedFiles = buildCtx.filesChanged.some(filePath => {
     // do transpiling if one of the changed files is a ts file
     // and the changed file is not the components.d.ts file
     // when the components.d.ts file is written to disk it shouldn't cause a new build
