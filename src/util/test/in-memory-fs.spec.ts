@@ -379,10 +379,10 @@ describe(`in-memory-fs`, () => {
     expect(mockFs.diskReads).toBe(1);
 
     const statsFile = await fs.stat(`/dir1/file1.js`);
-    expect(statsFile.isFile()).toBe(true);
+    expect(statsFile.isFile).toBe(true);
 
     const statsDir = await fs.stat(`/dir2`);
-    expect(statsDir.isDirectory()).toBe(true);
+    expect(statsDir.isDirectory).toBe(true);
   });
 
   it(`readFile with diskRead and throw error for no file`, async () => {

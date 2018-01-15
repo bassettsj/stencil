@@ -58,7 +58,7 @@ export async function processCopyTasks(config: Config, ctx: CompilerCtx, allCopy
 
   try {
     const stats = await ctx.fs.stat(processedCopyTask.src);
-    processedCopyTask.isDirectory = stats.isDirectory();
+    processedCopyTask.isDirectory = stats.isDirectory;
     config.logger.debug(`copy, ${processedCopyTask.src} to ${processedCopyTask.dest}, isDirectory: ${processedCopyTask.isDirectory}`);
     allCopyTasks.push(processedCopyTask);
 

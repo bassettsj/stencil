@@ -27,8 +27,7 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
     // found all the files we need to transpile
     // and have all the files in-memory and ready to go
     // go ahead and kick off transpiling
-    // transpiling process is NOT async
-    transpileModules(config, compilerCtx, buildCtx, tsFilePaths);
+    await transpileModules(config, compilerCtx, buildCtx, tsFilePaths);
 
   } catch (e) {
     // gah!!

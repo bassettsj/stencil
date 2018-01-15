@@ -20,8 +20,8 @@ export class InMemoryFileSystem {
       const s = await this.stat(filePath);
       this.d[filePath] = {
         exists: true,
-        isDirectory: s.isDirectory(),
-        isFile: s.isFile()
+        isDirectory: s.isDirectory,
+        isFile: s.isFile
       };
       hasAccess = true;
 
@@ -45,8 +45,8 @@ export class InMemoryFileSystem {
       const s = this.statSync(filePath);
       this.d[filePath] = {
         exists: true,
-        isDirectory: s.isDirectory(),
-        isFile: s.isFile()
+        isDirectory: s.isDirectory,
+        isFile: s.isFile
       };
       hasAccess = true;
 
@@ -62,10 +62,10 @@ export class InMemoryFileSystem {
   async copy(src: string, dest: string, opts?: { filter?: (src: string, dest?: string) => boolean; }) {
     const stats = await this.stat(src);
 
-    if (stats.isDirectory()) {
+    if (stats.isDirectory) {
       await this.copyDir(src, dest, opts);
 
-    } else if (stats.isFile()) {
+    } else if (stats.isFile) {
       await this.copyFile(src, dest, opts);
     }
   }
@@ -149,17 +149,17 @@ export class InMemoryFileSystem {
       // cache some stats about this path
       this.d[absPath] = this.d[absPath] || {};
       this.d[absPath].exists = true;
-      this.d[absPath].isDirectory = stats.isDirectory();
-      this.d[absPath].isFile = stats.isFile();
+      this.d[absPath].isDirectory = stats.isDirectory;
+      this.d[absPath].isFile = stats.isFile;
 
       collectedPaths.push({
         absPath: absPath,
         relPath: relPath,
-        isDirectory: stats.isDirectory(),
-        isFile: stats.isFile()
+        isDirectory: stats.isDirectory,
+        isFile: stats.isFile
       });
 
-      if (opts.recursive && stats.isDirectory()) {
+      if (opts.recursive && stats.isDirectory) {
         // looks like it's yet another directory
         // let's keep drilling down
         await this.readDirectory(initPath, absPath, opts, collectedPaths);
@@ -243,17 +243,16 @@ export class InMemoryFileSystem {
     let f = this.d[itemPath];
     if (!f || typeof f.isDirectory !== 'boolean' || typeof f.isFile !== 'boolean') {
       const s = await this.fs.stat(itemPath);
-      this.d[itemPath] = {
+      f = this.d[itemPath] = {
         exists: true,
         isFile: s.isFile(),
         isDirectory: s.isDirectory()
       };
-      return s;
     }
 
     return {
-      isFile: () => f.isFile,
-      isDirectory: () => f.isDirectory
+      isFile: f.isFile,
+      isDirectory: f.isDirectory
     };
   }
 
@@ -271,8 +270,8 @@ export class InMemoryFileSystem {
     }
 
     return {
-      isFile: () => f.isFile,
-      isDirectory: () => f.isDirectory
+      isFile: f.isFile,
+      isDirectory: f.isDirectory
     };
   }
 
