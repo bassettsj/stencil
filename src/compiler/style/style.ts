@@ -1,18 +1,23 @@
-import { CompilerCtx, Config, ComponentMeta, ModuleFile, StyleMeta, BuildCtx } from '../../util/interfaces';
 import { buildError, isCssFile, isSassFile, normalizePath } from '../util';
+import { canSkipStyleCompiling, cleanStyle, requiresScopedStyles } from './style-utils';
+import { CompilerCtx, Config, ComponentMeta, ModuleFile, StyleMeta, BuildCtx } from '../../util/interfaces';
 import { ENCAPSULATION } from '../../util/constants';
 import { scopeComponentCss } from '../css/scope-css';
 
 
-export function generateComponentStyles(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, moduleFile: ModuleFile) {
-  moduleFile.cmpMeta.stylesMeta = moduleFile.cmpMeta.stylesMeta || {};
+export async function generateComponentStyles(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, moduleFile: ModuleFile) {
+  if (canSkipStyleCompiling()) {
+    return;
+  }
 
-  return Promise.all(Object.keys(moduleFile.cmpMeta.stylesMeta).map(async modeName => {
+  const stylesMeta = moduleFile.cmpMeta.stylesMeta = moduleFile.cmpMeta.stylesMeta || {};
+
+  await Promise.all(Object.keys(stylesMeta).map(async modeName => {
     // compile each style mode's sass/css
-    const styles = await compileStyles(config, compilerCtx, buildCtx, moduleFile, moduleFile.cmpMeta.stylesMeta[modeName]);
+    const styles = await compileStyles(config, compilerCtx, buildCtx, moduleFile, stylesMeta[modeName]);
 
     // format and set the styles for use later
-    return setStyleText(config, compilerCtx, buildCtx, moduleFile.cmpMeta, moduleFile.cmpMeta.stylesMeta[modeName], styles);
+    await setStyleText(config, compilerCtx, buildCtx, moduleFile.cmpMeta, stylesMeta[modeName], styles);
   }));
 }
 
@@ -82,18 +87,6 @@ export function setStyleText(config: Config, _compilerCtx: CompilerCtx, buildCtx
   if (styleMeta.compiledStyleTextScoped) {
     styleMeta.compiledStyleTextScoped = cleanStyle(styleMeta.compiledStyleTextScoped);
   }
-}
-
-
-export function cleanStyle(style: string) {
-  return style.replace(/\r\n|\r|\n/g, `\\n`)
-              .replace(/\"/g, `\\"`)
-              .replace(/\@/g, `\\@`);
-}
-
-
-export function requiresScopedStyles(encapsulation: ENCAPSULATION) {
-  return (encapsulation === ENCAPSULATION.ScopedCss || encapsulation === ENCAPSULATION.ShadowDom);
 }
 
 

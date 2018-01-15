@@ -1,4 +1,4 @@
-import { cleanStyle } from '../component-styles';
+import { cleanStyle } from '../style-utils';
 
 
 describe('component-styles', () => {
