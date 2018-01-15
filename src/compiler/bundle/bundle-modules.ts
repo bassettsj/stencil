@@ -27,8 +27,8 @@ export async function bundleModules(config: Config, compilerCtx: CompilerCtx, bu
 export async function generateComponentModules(config: Config, contextCtx: CompilerCtx, buildCtx: BuildCtx, bundles: Bundle) {
   if (canSkipBundle(config, contextCtx, buildCtx, bundles.moduleFiles, bundles.entryKey)) {
     // we can skip bundling, let's use our cached data
-    bundles.compiledModuleText = contextCtx.moduleBundleOutputs[bundles.entryKey];
-    bundles.compiledModuleLegacyText = contextCtx.moduleBundleLegacyOutputs[bundles.entryKey];
+    bundles.compiledModuleText = contextCtx.compiledModuleText[bundles.entryKey];
+    bundles.compiledModuleLegacyText = contextCtx.compiledModuleLegacyText[bundles.entryKey];
     return;
   }
 
@@ -43,7 +43,7 @@ export async function generateComponentModules(config: Config, contextCtx: Compi
   bundles.compiledModuleText = await generateEsModule(config, rollupBundle);
 
   // cache for later
-  contextCtx.moduleBundleOutputs[bundles.entryKey] = bundles.compiledModuleText;
+  contextCtx.compiledModuleText[bundles.entryKey] = bundles.compiledModuleText;
 
   if (config.buildEs5) {
     // only create legacy modules when generating es5 fallbacks
@@ -51,7 +51,7 @@ export async function generateComponentModules(config: Config, contextCtx: Compi
     bundles.compiledModuleLegacyText = await generateLegacyModule(config, rollupBundle);
 
     // cache for later
-    contextCtx.moduleBundleLegacyOutputs[bundles.entryKey] = bundles.compiledModuleLegacyText;
+    contextCtx.compiledModuleLegacyText[bundles.entryKey] = bundles.compiledModuleLegacyText;
   }
 }
 
@@ -62,7 +62,7 @@ export function canSkipBundle(config: Config, compilerCtx: CompilerCtx, buildCtx
     return false;
   }
 
-  if (!compilerCtx.moduleBundleOutputs[cacheKey]) {
+  if (!compilerCtx.compiledModuleText[cacheKey]) {
     // cannot skip if there isn't anything cached
     return false;
   }
@@ -77,15 +77,18 @@ export function canSkipBundle(config: Config, compilerCtx: CompilerCtx, buildCtx
     return !!(compilerCtx.moduleFiles[filePath].cmpMeta);
   });
 
+    // if the changed file is a typescript file
+    // and the typescript file isn't a component then
+    // we must do a rebuild. Basically we don't know if this
+    // typescript file affects this bundle or not
   const isNonComponentTsFileChange = componentFilePaths.some(componentFilePath => {
     return buildCtx.filesChanged.some(changedFilePath => changedFilePath === componentFilePath);
   });
 
   if (isNonComponentTsFileChange) {
-    // if the changed file is a typescript file
-    // and the typescript file isn't a component then
-    // we must do a rebuild. Basically we don't know if this
-    // typescript file affects this bundle or not
+    // we've got a changed ts file that isn't a component
+    // so it could be like dependent library
+    // we cannot skip bundling
     return false;
   }
 
@@ -107,8 +110,12 @@ export function bundledComponentContainsChangedFile(config: Config, bundlesModul
   // yes...there could be two files that have the same filename in different directories
   // but worst case scenario is that both of them run their bundling, which isn't a performance problem
   return bundlesModuleFiles.some(moduleFile => {
+    // get the basename without any extension
     const distFileName = config.sys.path.basename(moduleFile.jsFilePath, '.js');
+
     return changedFiles.some(f => {
+      // compare the basename like it had a ts extension
+      // to one the changed file
       const changedFileName = config.sys.path.basename(f);
       return (changedFileName === distFileName + '.ts' || changedFileName === distFileName + '.tsx');
     });

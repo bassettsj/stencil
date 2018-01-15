@@ -279,6 +279,10 @@ export class InMemoryFileSystem {
   async writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions) {
     filePath = normalizePath(filePath);
 
+    if (typeof content !== 'string') {
+      throw new Error(`writeFile, invalid string content: ${filePath}`);
+    }
+
     const d = this.d[filePath] = this.d[filePath] || {};
     d.exists = true;
     d.isFile = true;

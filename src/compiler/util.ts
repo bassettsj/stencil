@@ -14,8 +14,8 @@ export function getCompilerCtx(sys: StencilSystem, compilerCtx: CompilerCtx = {}
   compilerCtx.moduleFiles = compilerCtx.moduleFiles || {};
   compilerCtx.rollupCache = compilerCtx.rollupCache || {};
   compilerCtx.dependentManifests = compilerCtx.dependentManifests || {};
-  compilerCtx.moduleBundleOutputs = compilerCtx.moduleBundleOutputs || {};
-  compilerCtx.moduleBundleLegacyOutputs = compilerCtx.moduleBundleLegacyOutputs || {};
+  compilerCtx.compiledModuleText = compilerCtx.compiledModuleText || {};
+  compilerCtx.compiledModuleLegacyText = compilerCtx.compiledModuleLegacyText || {};
 
   if (typeof compilerCtx.activeBuildId !== 'number') {
     compilerCtx.activeBuildId = -1;

@@ -477,8 +477,8 @@ export interface CompilerCtx {
   events?: BuildEvents;
   moduleFiles?: ModuleFiles;
   rollupCache?: { [cacheKey: string]: any };
-  moduleBundleOutputs?: ModuleBundles;
-  moduleBundleLegacyOutputs?: ModuleBundles;
+  compiledModuleText?: ModuleBundles;
+  compiledModuleLegacyText?: ModuleBundles;
   dependentManifests?: {[collectionName: string]: Manifest};
   appFiles?: {
     loader?: string;
