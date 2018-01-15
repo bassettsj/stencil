@@ -16,7 +16,7 @@ export class Renderer {
     validateBuildConfig(config);
 
     // init the build context
-    this.ctx = getCompilerCtx(config.sys, ctx);
+    this.ctx = getCompilerCtx(config, ctx);
 
     // load the component registry from the registry.json file
     this.cmpRegistry = loadComponentRegistry(config, this.ctx);

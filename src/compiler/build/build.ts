@@ -19,7 +19,7 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
   // create the build context if it doesn't exist
   // the buid context is the same object used for all builds and rebuilds
   // ctx is where stuff is cached for fast in-memory lookups later
-  compilerCtx = getCompilerCtx(config.sys, compilerCtx);
+  compilerCtx = getCompilerCtx(config, compilerCtx);
 
   // reset the build context, this is important for rebuilds
   const buildCtx = getBuildContext(config, compilerCtx, watcher);

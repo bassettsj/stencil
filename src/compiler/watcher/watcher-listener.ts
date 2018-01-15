@@ -161,7 +161,7 @@ export class WatcherListener {
     }
   }
 
-  update() {
+  startRebuild() {
     try {
       // create a copy of all that we've learned today
       const watcher = this.generateWatcherResults();
@@ -195,7 +195,7 @@ export class WatcherListener {
     clearTimeout(this.watchTmr);
 
     this.watchTmr = setTimeout(() => {
-      this.update();
+      this.startRebuild();
     }, 40);
   }
 

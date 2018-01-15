@@ -15,7 +15,7 @@ export class Compiler {
   constructor(public config: Config) {
     this.isValid = isValid(config);
     if (this.isValid) {
-      this.ctx = getCompilerCtx(config.sys);
+      this.ctx = getCompilerCtx(config);
     }
   }
 

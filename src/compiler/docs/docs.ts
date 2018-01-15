@@ -7,7 +7,7 @@ import { transpileScanSrc } from '../transpile/transpile-scan-src';
 
 
 export async function docs(config: Config, compilerCtx: CompilerCtx) {
-  compilerCtx = getCompilerCtx(config.sys, compilerCtx);
+  compilerCtx = getCompilerCtx(config, compilerCtx);
   const buildCtx = getBuildContext(config, compilerCtx, null);
 
   config.logger.info(config.logger.cyan(`${config.sys.compiler.name} v${config.sys.compiler.version}`));

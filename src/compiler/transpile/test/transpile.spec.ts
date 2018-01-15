@@ -43,6 +43,7 @@ describe('transpile', () => {
       expect(wroteFile(r, '/www/build/app/cmp-a.js')).toBe(false);
       expect(wroteFile(r, '/www/build/app/cmp-b.js')).toBe(false);
       expect(wroteFile(r, '/www/build/app/cmp-c.js')).toBe(false);
+
       expect(r.stats.components).toEqual(['cmp-a']);
     });
 
@@ -80,6 +81,7 @@ describe('transpile', () => {
       expect(wroteFile(r, '/www/build/app/cmp-b.js')).toBe(true);
       expect(wroteFile(r, '/www/build/app/cmp-c.js')).toBe(true);
       expect(r.stats.components).toEqual(['cmp-a', 'cmp-b', 'cmp-c']);
+      expect(r.stats.hasChangedJsText).toBe(true);
     });
 
     it('should rebuild transpile for changed typescript file', async () => {
@@ -110,6 +112,7 @@ describe('transpile', () => {
       expect(wroteFile(r, '/www/build/app/cmp-a.js')).toBe(true);
       expect(r.stats.components).toEqual(['cmp-a']);
       expect(r.stats.transpileBuildCount).toBe(1);
+      expect(r.stats.hasChangedJsText).toBe(true);
     });
 
     it('should not rebuild transpile for unchanged typescript file', async () => {
@@ -145,6 +148,8 @@ describe('transpile', () => {
       expect(r.stats.isRebuild).toBe(true);
       expect(r.stats.components).toEqual(['cmp-a']);
       expect(r.stats.transpileBuildCount).toBe(1);
+      expect(r.stats.transpileBuildCount).toBe(1);
+      expect(r.stats.hasChangedJsText).toBe(false);
     });
 
 

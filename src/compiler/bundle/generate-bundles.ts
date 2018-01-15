@@ -172,11 +172,11 @@ function getBundleJsText(buildCtx: BuildCtx, bundle: Bundle, sourceTarget?: Sour
   if (sourceTarget === 'es5') {
     // use legacy bundling with commonjs/jsonp modules
     // and transpile the build to es5
-    return transileEs5Bundle(buildCtx, bundle.compiledModuleLegacyText);
+    return transileEs5Bundle(buildCtx, bundle.compiledModuleLegacyJsText);
   }
 
   // already have es modules with es6 target
-  return bundle.compiledModuleText;
+  return bundle.compiledModuleJsText;
 }
 
 

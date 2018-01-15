@@ -1,7 +1,7 @@
 import { BuildCtx, Bundle, CompilerCtx, Config, Diagnostic, ManifestBundle, ModuleFile } from '../../util/interfaces';
 import { buildError, catchError } from '../util';
-import { bundleModules } from './bundle-modules';
 import { bundleRequiresScopedStyles, getBundleEncapsulations, getBundleModes, sortBundles } from './bundle-utils';
+import { generateBundleModule } from './bundle-module';
 import { upgradeDependentComponents } from '../upgrade-dependents/index';
 
 
@@ -27,7 +27,9 @@ export async function bundle(config: Config, compilerCtx: CompilerCtx, buildCtx:
     await upgradeDependentComponents(config, compilerCtx, buildCtx, bundles);
 
     // kick off bundling
-    await bundleModules(config, compilerCtx, buildCtx, bundles);
+    await Promise.all(bundles.map(async bundle => {
+      await generateBundleModule(config, compilerCtx, buildCtx, bundle);
+    }));
 
   } catch (e) {
     catchError(buildCtx.diagnostics, e);
@@ -45,7 +47,7 @@ export function getBundlesFromManifest(moduleFiles: ModuleFile[], manifestBundle
   manifestBundles.filter(b => b.components && b.components.length).forEach(manifestBundle => {
     const bundle: Bundle = {
       moduleFiles: [],
-      compiledModuleText: ''
+      compiledModuleJsText: ''
     };
 
     manifestBundle.components.forEach(tag => {

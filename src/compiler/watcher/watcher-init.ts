@@ -8,7 +8,7 @@ export function initWatcher(config: Config, compilerCtx: CompilerCtx, buildCtx: 
   // and this is the first build
   if (compilerCtx.isRebuild || !config.watch) return;
 
-  config.logger.debug(`initWatch: ${config.srcDir}`);
+  config.logger.debug(`initWatcher: ${config.srcDir}`);
 
   const watcherListener = new WatcherListener(config, compilerCtx, buildCtx);
   watcherListener.subscribe();

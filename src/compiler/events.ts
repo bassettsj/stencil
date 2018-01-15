@@ -1,9 +1,10 @@
-import { CompilerEventName, BuildResults } from '../util/interfaces';
+import { BuildResults, CompilerEventName, Config } from '../util/interfaces';
 
 
 export class BuildEvents {
   private evCallbacks: { [eventName: string]: Function[] } = {};
 
+  constructor(private config: Config) {}
 
   subscribe(eventName: 'fileUpdate', cb: (path: string) => void): Function;
   subscribe(eventName: 'fileAdd', cb: (path: string) => void): Function;
@@ -14,6 +15,10 @@ export class BuildEvents {
   subscribe(eventName: 'rebuild', cb: (buildResults: BuildResults) => void): Function;
   subscribe(eventName: CompilerEventName, cb: Function): Function {
     const evName = getEventName(eventName);
+
+    if (eventName === 'rebuild' && !this.config.watch) {
+      throw new Error(`config must set "watch" to "true" in order to enable "rebuild" events`);
+    }
 
     if (!this.evCallbacks[evName]) {
       this.evCallbacks[evName] = [];

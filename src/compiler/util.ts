@@ -1,21 +1,21 @@
 import { BANNER } from '../util/constants';
 import { BuildEvents } from './events';
-import { Config, CompilerCtx, Diagnostic, StencilSystem } from '../util/interfaces';
+import { Config, CompilerCtx, Diagnostic } from '../util/interfaces';
 import { InMemoryFileSystem } from '../util/in-memory-fs';
 
 
-export function getCompilerCtx(sys: StencilSystem, compilerCtx: CompilerCtx = {}) {
+export function getCompilerCtx(config: Config, compilerCtx: CompilerCtx = {}) {
   // reusable data between builds
-  compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(sys.fs, sys.path);
-  compilerCtx.events = compilerCtx.events || new BuildEvents();
+  compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(config.sys.fs, config.sys.path);
+  compilerCtx.events = compilerCtx.events || new BuildEvents(config);
   compilerCtx.appFiles = compilerCtx.appFiles || {};
   compilerCtx.appGlobalStyles = compilerCtx.appGlobalStyles || {};
   compilerCtx.coreBuilds = compilerCtx.coreBuilds || {};
   compilerCtx.moduleFiles = compilerCtx.moduleFiles || {};
   compilerCtx.rollupCache = compilerCtx.rollupCache || {};
   compilerCtx.dependentManifests = compilerCtx.dependentManifests || {};
-  compilerCtx.compiledModuleText = compilerCtx.compiledModuleText || {};
-  compilerCtx.compiledModuleLegacyText = compilerCtx.compiledModuleLegacyText || {};
+  compilerCtx.compiledModuleJsText = compilerCtx.compiledModuleJsText || {};
+  compilerCtx.compiledModuleLegacyJsText = compilerCtx.compiledModuleLegacyJsText || {};
 
   if (typeof compilerCtx.activeBuildId !== 'number') {
     compilerCtx.activeBuildId = -1;
@@ -84,6 +84,11 @@ export function isHtmlFile(filePath: string) {
   return ext === 'html' || ext === 'htm';
 }
 
+/**
+ * Only web development text files, like ts, tsx,
+ * js, html, css, scss, etc.
+ * @param filePath
+ */
 export function isWebDevFile(filePath: string) {
   const ext = filePath.split('.').pop().toLowerCase();
   if (WEB_DEV_EXT.indexOf(ext) > -1) {

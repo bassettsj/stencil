@@ -246,8 +246,8 @@ export interface AppRegistryComponents {
 export interface Bundle {
   entryKey?: string;
   moduleFiles: ModuleFile[];
-  compiledModuleText?: string;
-  compiledModuleLegacyText?: string;
+  compiledModuleJsText?: string;
+  compiledModuleLegacyJsText?: string;
   requiresScopedStyles?: boolean;
   modeNames?: string[];
 }
@@ -477,8 +477,8 @@ export interface CompilerCtx {
   events?: BuildEvents;
   moduleFiles?: ModuleFiles;
   rollupCache?: { [cacheKey: string]: any };
-  compiledModuleText?: ModuleBundles;
-  compiledModuleLegacyText?: ModuleBundles;
+  compiledModuleJsText?: ModuleBundles;
+  compiledModuleLegacyJsText?: ModuleBundles;
   dependentManifests?: {[collectionName: string]: Manifest};
   appFiles?: {
     loader?: string;
@@ -539,12 +539,13 @@ export interface BuildResults {
     transpileBuildCount: number;
     styleBuildCount: number;
     bundleBuildCount: number;
-    dirsAdded?: string[];
-    dirsDeleted?: string[];
-    filesChanged?: string[];
-    filesUpdated?: string[];
-    filesAdded?: string[];
-    filesDeleted?: string[];
+    hasChangedJsText: boolean;
+    dirsAdded: string[];
+    dirsDeleted: string[];
+    filesChanged: string[];
+    filesUpdated: string[];
+    filesAdded: string[];
+    filesDeleted: string[];
   };
 }
 
