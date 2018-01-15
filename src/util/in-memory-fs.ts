@@ -1,5 +1,5 @@
-import { FileSystem, FileSystemReadDirItem, FileSystemReadOptions, FileSystemWriteOptions,
-  FsItems, FsCopyFileTask, Path, FileSystemReadDirOptions } from './interfaces';
+import { FileSystem, FsReaddirItem, FsReadOptions, FsWriteOptions,
+  FsItems, FsCopyFileTask, Path, FsReaddirOptions, FsWriteResults } from './interfaces';
 import { normalizePath } from '../compiler/util';
 
 
@@ -114,10 +114,10 @@ export class InMemoryFileSystem {
     this.d[dirPath].queueWriteToDisk = true;
   }
 
-  async readdir(dirPath: string, opts: FileSystemReadDirOptions = {}) {
+  async readdir(dirPath: string, opts: FsReaddirOptions = {}) {
     dirPath = normalizePath(dirPath);
 
-    const collectedPaths: FileSystemReadDirItem[] = [];
+    const collectedPaths: FsReaddirItem[] = [];
 
     // always a disk read
     await this.readDirectory(dirPath, dirPath, opts, collectedPaths);
@@ -125,7 +125,7 @@ export class InMemoryFileSystem {
     return collectedPaths;
   }
 
-  private async readDirectory(initPath: string, dirPath: string, opts: FileSystemReadDirOptions, collectedPaths: FileSystemReadDirItem[]) {
+  private async readDirectory(initPath: string, dirPath: string, opts: FsReaddirOptions, collectedPaths: FsReaddirItem[]) {
     // used internally only so we could easily recursively drill down
     // loop through this directory and sub directories
     // always a disk read!!
@@ -167,7 +167,7 @@ export class InMemoryFileSystem {
     }));
   }
 
-  async readFile(filePath: string, opts?: FileSystemReadOptions) {
+  async readFile(filePath: string, opts?: FsReadOptions) {
     filePath = normalizePath(filePath);
 
     if (!opts || (opts.useCache === true || opts.useCache === undefined)) {
@@ -276,7 +276,9 @@ export class InMemoryFileSystem {
     };
   }
 
-  async writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions) {
+  async writeFile(filePath: string, content: string, opts?: FsWriteOptions) {
+    const results: FsWriteResults = {};
+
     filePath = normalizePath(filePath);
 
     if (typeof content !== 'string') {
@@ -289,30 +291,41 @@ export class InMemoryFileSystem {
     d.isDirectory = false;
     d.queueDeleteFromDisk = false;
 
+    results.changedContent = d.fileText !== content;
+    results.queuedWrite = false;
+
+    d.fileText = content;
+
     if (opts && opts.inMemoryOnly) {
       // we don't want to actually write this to disk
       // just keep it in memory
-      if (!d.queueWriteToDisk) {
+      if (d.queueWriteToDisk) {
+        // we already queued this file to write to disk
+        // in that case we still need to do it
+        results.queuedWrite = true;
+
+      } else {
         // we only want this in memory and
         // it wasn't already queued to be written
         d.queueWriteToDisk = false;
       }
-      d.fileText = content;
 
     } else {
       // we want to write this to disk (eventually)
       // but only if the content is different
       // from our existing cached content
-      if (!d.queueWriteToDisk && d.fileText !== content) {
+      if (!d.queueWriteToDisk && results.changedContent) {
         // not already queued to be written
         // and the content is different
         d.queueWriteToDisk = true;
+        results.queuedWrite = true;
       }
-      d.fileText = content;
     }
+
+    return results;
   }
 
-  writeFiles(files: { [filePath: string]: string }, opts?: FileSystemWriteOptions) {
+  writeFiles(files: { [filePath: string]: string }, opts?: FsWriteOptions) {
     return Promise.all(Object.keys(files).map(filePath => {
       return this.writeFile(filePath, files[filePath], opts);
     }));

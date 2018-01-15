@@ -514,6 +514,7 @@ export interface BuildCtx {
   aborted: boolean;
   timeSpan: LoggerTimeSpan;
   startTime: number;
+  hasChangedJsText: boolean;
   filesWritten: string[];
   filesCopied: string[];
   filesDeleted: string[];
@@ -1234,22 +1235,22 @@ export interface FileSystem {
   stat(path: string): Promise<{ isFile: () => boolean; isDirectory: () => boolean; }>;
   statSync(path: string): { isFile: () => boolean; isDirectory: () => boolean; };
   unlink(filePath: string): Promise<void>;
-  writeFile(filePath: string, content: string, opts?: FileSystemWriteOptions): Promise<void>;
-  writeFileSync(filePath: string, content: string, opts?: FileSystemWriteOptions): void;
+  writeFile(filePath: string, content: string, opts?: FsWriteOptions): Promise<void>;
+  writeFileSync(filePath: string, content: string, opts?: FsWriteOptions): void;
 }
 
 
-export interface FileSystemReadOptions {
+export interface FsReadOptions {
   useCache?: boolean;
 }
 
 
-export interface FileSystemReadDirOptions {
+export interface FsReaddirOptions {
   recursive?: boolean;
 }
 
 
-export interface FileSystemReadDirItem {
+export interface FsReaddirItem {
   absPath: string;
   relPath: string;
   isDirectory: boolean;
@@ -1257,9 +1258,15 @@ export interface FileSystemReadDirItem {
 }
 
 
-export interface FileSystemWriteOptions {
+export interface FsWriteOptions {
   inMemoryOnly?: boolean;
   clearFileCache?: boolean;
+}
+
+
+export interface FsWriteResults {
+  changedContent?: boolean;
+  queuedWrite?: boolean;
 }
 
 

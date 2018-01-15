@@ -1,9 +1,9 @@
-import { Config, CompilerCtx } from '../../util/interfaces';
+import { Config, CompilerCtx, FsWriteResults } from '../../util/interfaces';
 import { isDtsFile, isJsFile, normalizePath } from '../util';
 import * as ts from 'typescript';
 
 
-export function getTsHost(config: Config, ctx: CompilerCtx, tsCompilerOptions: ts.CompilerOptions) {
+export function getTsHost(config: Config, ctx: CompilerCtx, writeQueue: Promise<FsWriteResults>[], tsCompilerOptions: ts.CompilerOptions) {
   const tsHost = ts.createCompilerHost(tsCompilerOptions);
 
   tsHost.getSourceFile = (filePath) => {
@@ -33,11 +33,10 @@ export function getTsHost(config: Config, ctx: CompilerCtx, tsCompilerOptions: t
     return sourceText;
   },
 
-  tsHost.writeFile = (outputFilePath: string, outputText: string, writeByteOrderMark: boolean, onError: any, sourceFiles: ts.SourceFile[]): void => {
+  tsHost.writeFile = (outputFilePath: string, outputText: string, _writeByteOrderMark: boolean, _onError: any, sourceFiles: ts.SourceFile[]): void => {
     sourceFiles.forEach(sourceFile => {
-      writeFileInMemory(config, ctx, sourceFile, outputFilePath, outputText);
+      writeQueue.push(writeFileInMemory(config, ctx, sourceFile, outputFilePath, outputText));
     });
-    writeByteOrderMark; onError;
   };
 
   return tsHost;
@@ -53,13 +52,6 @@ function writeFileInMemory(config: Config, ctx: CompilerCtx, sourceFile: ts.Sour
   // otherwise we still want to put these files in our file system but
   // only as in-memory files and never are actually written to disk
   const isInMemoryOnly = !config.generateDistribution;
-
-  // let's write the beast to our internal in-memory file system
-  // the distFilePath is only written to disk when a distribution
-  // is being created. But if we're not generating a distribution
-  // like just a website, we still need to write it to our file system
-  // so it can be read later, but it only needs to be in memory
-  ctx.fs.writeFile(distFilePath, outputText, { inMemoryOnly: isInMemoryOnly });
 
   // get or create the ctx module file object
   if (!ctx.moduleFiles[tsFilePath]) {
@@ -80,4 +72,11 @@ function writeFileInMemory(config: Config, ctx: CompilerCtx, sourceFile: ts.Sour
     // idk, this shouldn't happen
     config.logger.debug(`unknown transpiled output: ${distFilePath}`);
   }
+
+  // let's write the beast to our internal in-memory file system
+  // the distFilePath is only written to disk when a distribution
+  // is being created. But if we're not generating a distribution
+  // like just a website, we still need to write it to our file system
+  // so it can be read later, but it only needs to be in memory
+  return ctx.fs.writeFile(distFilePath, outputText, { inMemoryOnly: isInMemoryOnly });
 }

@@ -31,6 +31,7 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
     startTime: Date.now(),
     timeSpan: config.logger.createTimeSpan(msg),
     components: [],
+    hasChangedJsText: false,
     filesWritten: [],
     filesCopied: [],
     filesChanged: watcher ? watcher.filesChanged : [],

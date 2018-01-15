@@ -1,5 +1,5 @@
 import addComponentMetadata from './transformers/add-component-metadata';
-import { Config, CompilerCtx, Diagnostic, ModuleFiles, TranspileResults, BuildCtx } from '../../util/interfaces';
+import { Config, CompilerCtx, Diagnostic, ModuleFiles, TranspileResults, BuildCtx, FsWriteResults } from '../../util/interfaces';
 import { hasError, normalizePath } from '../util';
 import { gatherMetadata } from './datacollection/index';
 import { generateComponentTypesFile } from './create-component-types';
@@ -70,7 +70,7 @@ export function transpileModule(config: Config, compilerOptions: ts.CompilerOpti
 }
 
 
-export function transpileModules(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, tsFilePaths: string[]) {
+export async function transpileModules(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, tsFilePaths: string[]) {
   if (hasError(buildCtx.diagnostics)) {
     // we've already got an error, let's not continue
     return;
@@ -92,9 +92,11 @@ export function transpileModules(config: Config, compilerCtx: CompilerCtx, build
     tsOptions.lib = [];
   }
 
+  const writeQueue: Promise<FsWriteResults>[] = [];
+
   // get the ts compiler host we'll use, which patches file operations
   // with our in-memory file system
-  const tsHost = getTsHost(config, compilerCtx, tsOptions);
+  const tsHost = getTsHost(config, compilerCtx, writeQueue, tsOptions);
 
   // fire up the typescript program
   const componentsDtsSrcFilePath = getComponentsDtsSrcFilePath(config);
@@ -145,6 +147,10 @@ export function transpileModules(config: Config, compilerCtx: CompilerCtx, build
 
   // run the second program again with our new typed info
   transpileProgram(program, tsHost, config, compilerCtx, buildCtx);
+
+  // figure out if we actually have changed JS text that was written
+  const writeResults = await Promise.all(writeQueue);
+  buildCtx.hasChangedJsText = writeResults.some(r => r.changedContent);
 
   // done and done
   timespace.finish(`transpileModules finished`);
