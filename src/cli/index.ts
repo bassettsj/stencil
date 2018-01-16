@@ -1,3 +1,4 @@
+import { Compiler as CompilerType } from '../compiler';
 import { Config, Logger, StencilSystem } from '../util/interfaces';
 import { getConfigFilePath, hasError, overrideConfigFromArgv, parseArgv } from './cli-utils';
 import { help } from './task-help';
@@ -55,9 +56,9 @@ export async function run(process: NodeJS.Process, sys: StencilSystem, logger: L
       config.sys = sys;
     }
 
-    const { Compiler } = await import('../compiler/index.js');
+    const { Compiler } = require('../compiler/index.js');
 
-    const compiler = new Compiler(config);
+    const compiler: CompilerType = new Compiler(config);
     if (!compiler.isValid) {
       return process.exit(1);
     }
