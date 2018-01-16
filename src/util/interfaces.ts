@@ -505,7 +505,6 @@ export interface BuildCtx {
   diagnostics: Diagnostic[];
   manifest: Manifest;
   transpileBuildCount: number;
-  styleBuildCount: number;
   bundleBuildCount: number;
   appFileBuildCount: number;
   indexBuildCount: number;
@@ -536,7 +535,6 @@ export interface BuildResults {
     filesWritten: string[];
     components: string[];
     transpileBuildCount: number;
-    styleBuildCount: number;
     bundleBuildCount: number;
     hasChangedJsText: boolean;
     dirsAdded: string[];

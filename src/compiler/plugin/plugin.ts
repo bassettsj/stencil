@@ -1,5 +1,6 @@
 import { BasePlugin } from './base-plugin';
 import { BuildCtx, CompilerCtx, Config } from '../../util/interfaces';
+import { catchError } from '../util';
 import { PluginLoadOptions, PluginLoadResults, PluginTransformOptions, PluginResolveIdOptions, PluginResolveIdResults, PluginTransformResults } from './plugin-interfaces';
 import { StyleAutoPrefixerPlugin } from '../style/style-autoprefixer-plugin';
 import { StyleMinifyPlugin } from '../style/style-minify-plugin';
@@ -24,7 +25,7 @@ export function initPlugins(config: Config) {
 
 
 export async function runPluginResolveId(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, id: string): Promise<PluginResolveIdResults> {
-  for (let i = 0; i < config.plugins.length - 1; i++) {
+  for (let i = 0; i < config.plugins.length; i++) {
     const plugin = config.plugins[i];
 
     if (typeof plugin.resolveId === 'function') {
@@ -46,12 +47,13 @@ export async function runPluginResolveId(config: Config, compilerCtx: CompilerCt
         };
 
         const resultsPromise = plugin.resolveId(opts);
-        if (resultsPromise && resultsPromise instanceof Promise) {
+        if (resultsPromise && typeof resultsPromise.then === 'function') {
           return await resultsPromise;
         }
 
       } catch (e) {
-        config.logger.error(`${plugin.name} resolveId error: ${e}`);
+        const d = catchError(buildCtx.diagnostics, e);
+        d.header = `${plugin.name || 'Plugin'} resolveId error`;
       }
     }
   }
@@ -61,7 +63,7 @@ export async function runPluginResolveId(config: Config, compilerCtx: CompilerCt
 
 
 export async function runPluginLoad(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, id: string): Promise<PluginLoadResults> {
-  for (let i = 0; i < config.plugins.length - 1; i++) {
+  for (let i = 0; i < config.plugins.length; i++) {
     const plugin = config.plugins[i];
 
     if (typeof plugin.load === 'function') {
@@ -82,12 +84,13 @@ export async function runPluginLoad(config: Config, compilerCtx: CompilerCtx, bu
         };
 
         const resultsPromise = plugin.load(opts);
-        if (resultsPromise && resultsPromise instanceof Promise) {
+        if (resultsPromise && typeof resultsPromise.then === 'function') {
           return await resultsPromise;
         }
 
       } catch (e) {
-        config.logger.error(`${plugin.name} load error: ${e}`);
+        const d = catchError(buildCtx.diagnostics, e);
+        d.header = `${plugin.name || 'Plugin'} load error`;
       }
     }
   }
@@ -105,7 +108,7 @@ export async function runPluginTransforms(config: Config, compilerCtx: CompilerC
     id: loadResults.id
   };
 
-  for (let i = 0; i < config.plugins.length - 1; i++) {
+  for (let i = 0; i < config.plugins.length; i++) {
     const plugin = config.plugins[i];
 
     if (typeof plugin.transform === 'function') {
@@ -126,20 +129,23 @@ export async function runPluginTransforms(config: Config, compilerCtx: CompilerC
           filesAdded: buildCtx.filesAdded,
         };
 
-        const pluginTransformPromise = plugin.transform(transformOpts);
-        if (pluginTransformPromise && pluginTransformPromise instanceof Promise) {
-          const pluginTransformResults = await pluginTransformPromise;
+        const resultsPromise = plugin.transform(transformOpts);
+        if (resultsPromise && typeof resultsPromise.then === 'function') {
+          const pluginTransformResults = await resultsPromise;
 
-          if (typeof pluginTransformResults.code === 'string') {
-            transformResults.code = pluginTransformResults.code;
-          }
-          if (typeof pluginTransformResults.id === 'string') {
-            transformResults.id = pluginTransformResults.id;
+          if (pluginTransformResults) {
+            if (typeof pluginTransformResults.code === 'string') {
+              transformResults.code = pluginTransformResults.code;
+            }
+            if (typeof pluginTransformResults.id === 'string') {
+              transformResults.id = pluginTransformResults.id;
+            }
           }
         }
 
       } catch (e) {
-        config.logger.error(`${plugin.name || 'Plugin'} transform error: ${e}`);
+        const d = catchError(buildCtx.diagnostics, e);
+        d.header = `${plugin.name || 'Plugin'} transform error`;
       }
     }
   }

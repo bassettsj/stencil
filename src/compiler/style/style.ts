@@ -6,6 +6,7 @@ import { scopeComponentCss } from '../css/scope-css';
 
 
 export async function generateStyles(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, bundles: Bundle[]) {
+
   await Promise.all(bundles.map(async bundle => {
 
     await Promise.all(bundle.moduleFiles.map(async moduleFile => {
@@ -30,7 +31,7 @@ export async function generateComponentStyles(config: Config, compilerCtx: Compi
 
 
 async function compileStyles(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, jsFilePath: string, styleMeta: StyleMeta) {
-  let absStylePath = styleMeta.absolutePaths ? styleMeta.absolutePaths.slice() : [];
+  const absStylePath = styleMeta.absolutePaths ? styleMeta.absolutePaths.slice() : [];
 
   if (typeof styleMeta.styleStr === 'string') {
     // plain styles just in a string

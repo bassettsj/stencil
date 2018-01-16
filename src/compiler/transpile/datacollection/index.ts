@@ -44,7 +44,7 @@ function visitFactory(config: Config, checker: ts.TypeChecker, componentMetaList
 }
 
 export function visitClass(config: Config, checker: ts.TypeChecker, classNode: ts.ClassDeclaration, sourceFile: ts.SourceFile, diagnostics: Diagnostic[]): ComponentMeta | undefined {
-  let cmpMeta: ComponentMeta = getComponentDecoratorMeta(checker, classNode);
+  let cmpMeta = getComponentDecoratorMeta(checker, classNode);
 
   if (!cmpMeta) {
     return undefined;

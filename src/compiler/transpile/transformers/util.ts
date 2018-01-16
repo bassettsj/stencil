@@ -1,6 +1,4 @@
-import { dashToPascalCase } from '../../../util/helpers';
 import { DEFAULT_COMPILER_OPTIONS } from '../compiler-options';
-import { StyleMeta, Config } from '../../../util/interfaces';
 import * as ts from 'typescript';
 
 
@@ -170,26 +168,4 @@ export function transformSourceFile(sourceText: string, transformers: ts.CustomT
       target: ts.ScriptTarget.ES2017
     })
   }).outputText;
-}
-
-export function createImportNameFromUrl(config: Config, importUrl: string) {
-  const ext = config.sys.path.extname(importUrl);
-  const baseName = config.sys.path.basename(importUrl, ext);
-
-  return dashToPascalCase(baseName);
-}
-
-export interface StyleImport {
-  importName: string;
-  absolutePath: string;
-}
-
-export function getImportNameMapFromStyleMeta(config: Config, styleMeta: StyleMeta): StyleImport[] {
-  return styleMeta.absolutePaths.map((ocp) => {
-    const importName = createImportNameFromUrl(config, ocp) + 'Css';
-    return {
-      importName,
-      absolutePath: ocp,
-    };
-  });
 }

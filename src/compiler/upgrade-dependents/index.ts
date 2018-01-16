@@ -43,7 +43,7 @@ function createDoUpgrade(config: Config, compilerCtx: CompilerCtx, bundles: Bund
         case CompilerUpgrade.Metadata_Upgrade_From_0_1_0:
           config.logger.debug(`Metadata_Upgrade_From_0_1_0, manifestCompilerVersion: ${manifest.compiler.version}`);
           return () => {
-            return upgradeFromMetadata(config, bundles);
+            return upgradeFromMetadata(bundles);
           };
       }
       return () => (tsSourceFile: ts.SourceFile) => (tsSourceFile);

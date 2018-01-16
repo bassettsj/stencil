@@ -1,9 +1,7 @@
-import { BuildResults, Config, CompilerCtx } from '../../../util/interfaces';
 import { DEFAULT_COMPILER_OPTIONS } from '../compiler-options';
-import { mockConfig, mockFs } from '../../../testing/mocks';
+import { mockConfig } from '../../../testing/mocks';
 import { TestingCompiler } from '../../../testing';
 import { transpileModule } from '../transpile';
-import { validateBuildConfig } from '../../../util/validate-config';
 import { wroteFile } from '../../../testing/utils';
 import * as path from 'path';
 import * as ts from 'typescript';

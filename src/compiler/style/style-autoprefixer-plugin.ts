@@ -2,7 +2,6 @@ import { Plugin, PluginTransformOptions, PluginTransformResults } from '../../co
 
 
 export class StyleAutoPrefixerPlugin implements Plugin {
-  cache: { [key: string]: string } = {};
 
   async transform(opts: PluginTransformOptions) {
     if (!this.usePlugin(opts.id)) {

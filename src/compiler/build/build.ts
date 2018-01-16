@@ -8,12 +8,12 @@ import { generateAppManifest } from '../manifest/generate-manifest';
 import { generateBundles } from '../bundle/generate-bundles';
 import { generateIndexHtml } from '../html/generate-index-html';
 import { generateReadmes } from '../docs/generate-readmes';
+import { generateStyles } from '../style/style';
 import { initIndexHtml } from '../html/init-index-html';
 import { initWatcher } from '../watcher/watcher-init';
 import { prerenderApp } from '../prerender/prerender-app';
 import { transpileScanSrc } from '../transpile/transpile-scan-src';
 import { writeBuildFiles } from './write-build';
-import { generateStyles } from '../style/style';
 
 
 export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?: WatcherResults): Promise<BuildResults> {

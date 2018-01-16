@@ -1,5 +1,5 @@
 import { Plugin, PluginTransformOptions, PluginTransformResults } from '../../compiler/plugin/plugin-interfaces';
-import nodeSass from 'node-sass';
+const nodeSass = require('node-sass');
 
 
 export class StyleSassPlugin implements Plugin {
@@ -44,7 +44,7 @@ export class StyleSassPlugin implements Plugin {
         renderOpts.outputStyle = 'expanded';
       }
 
-      nodeSass.render(renderOpts, async (err, sassResult) => {
+      nodeSass.render(renderOpts, async (err: any, sassResult: any) => {
         if (err) {
           reject(err);
 

@@ -1,6 +1,7 @@
 import { Config, StylesMeta } from '../../util/interfaces';
 import { normalizePath } from '../util';
 
+
 export function normalizeStyles(config: Config, componentFilePath: string, stylesMeta: StylesMeta) {
   const newStylesMeta: StylesMeta = {};
 
@@ -13,6 +14,10 @@ export function normalizeStyles(config: Config, componentFilePath: string, style
       newStylesMeta[modeName].cmpRelativePaths = (newStylesMeta[modeName].cmpRelativePaths || []).concat(cmpRelativePath);
       newStylesMeta[modeName].absolutePaths = (newStylesMeta[modeName].absolutePaths || []).concat(absolutePath);
     });
+
+    if (typeof stylesMeta[modeName].styleStr === 'string') {
+      newStylesMeta[modeName].styleStr = stylesMeta[modeName].styleStr;
+    }
   });
 
   return newStylesMeta;

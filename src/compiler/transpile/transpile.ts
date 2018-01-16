@@ -51,7 +51,7 @@ export function transpileModule(config: Config, compilerOptions: ts.CompilerOpti
       before: [
         removeDecorators(),
         removeImports(),
-        addComponentMetadata(config, moduleFiles)
+        addComponentMetadata(moduleFiles)
       ]
     }
   };
@@ -164,7 +164,7 @@ function transpileProgram(program: ts.Program, tsHost: ts.CompilerHost, config: 
     before: [
       removeDecorators(),
       removeImports(),
-      addComponentMetadata(config, compilerCtx.moduleFiles)
+      addComponentMetadata(compilerCtx.moduleFiles)
     ]
   });
 
