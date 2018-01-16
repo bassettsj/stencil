@@ -282,6 +282,11 @@ export class NodeSystem implements StencilSystem {
     return this.sysUtil.semver;
   }
 
+  tmpdir() {
+    const os = require('os');
+    return os.tmpdir();
+  }
+
   get typescript() {
     return require('typescript');
   }

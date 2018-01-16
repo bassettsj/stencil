@@ -1,62 +1,50 @@
-import { Plugin, PluginTransformOptions, PluginTransformResults } from '../../compiler/plugin/plugin-interfaces';
+import { Plugin, PluginTransformResults, PluginCtx } from '../../compiler/plugin/plugin-interfaces';
 const nodeSass = require('node-sass');
 
 
 export class StyleSassPlugin implements Plugin {
-  cache: { [key: string]: string } = {};
 
   constructor(private renderOpts: RenderOptions = {}) {}
 
-  async transform(opts: PluginTransformOptions) {
-    if (!this.usePlugin(opts.id)) {
+  async transform(sourceText: string, id: string, context: PluginCtx) {
+    if (!this.usePlugin(id)) {
       return null;
     }
 
-    opts.filesChanged.forEach(filePath => {
-      // clear out the cache
-      delete this.cache[filePath];
-    });
+    const results: PluginTransformResults = {};
 
-    const results: PluginTransformResults = {
-      code: opts.code
-    };
-
-    // create a new css file path
-    const pathParts = opts.id.split('.');
+    // create what the new path is post transform (.css)
+    const pathParts = id.split('.');
     pathParts.pop();
     pathParts.push('css');
     results.id = pathParts.join('.');
 
-    if (this.cache[opts.id]) {
-      results.code = this.cache[opts.id];
+    const cacheKey = this.name + context.sys.generateContentHash(sourceText, 24);
+    const cachedContent = await context.cache.get(cacheKey);
+
+    if (cachedContent !== null) {
+      results.code = cachedContent;
+
     } else {
-      this.render(opts, results);
+      results.code = await new Promise<string>((resolve, reject) => {
+        const renderOpts = Object.assign({}, this.renderOpts);
+        renderOpts.data = sourceText;
+        if (!renderOpts.outputStyle) {
+          renderOpts.outputStyle = 'expanded';
+        }
+
+        nodeSass.render(renderOpts, async (err: any, sassResult: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(sassResult.css.toString());
+          }
+        });
+      });
+      await context.cache.put(cacheKey, results.code);
     }
 
     return results;
-  }
-
-  render(opts: PluginTransformOptions, results: PluginTransformResults) {
-    return new Promise<string>((resolve, reject) => {
-      const renderOpts = Object.assign({}, this.renderOpts);
-      renderOpts.data = opts.code;
-      if (!renderOpts.outputStyle) {
-        renderOpts.outputStyle = 'expanded';
-      }
-
-      nodeSass.render(renderOpts, async (err: any, sassResult: any) => {
-        if (err) {
-          reject(err);
-
-        } else {
-          results.code = sassResult.css.toString();
-          this.cache[opts.id] = results.code;
-          await opts.fs.writeFile(results.id, results.code);
-
-          resolve();
-        }
-      });
-    });
   }
 
   usePlugin(id: string) {

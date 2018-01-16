@@ -1,33 +1,30 @@
-import { Plugin, PluginTransformOptions, PluginTransformResults } from '../../compiler/plugin/plugin-interfaces';
+import { Plugin, PluginTransformResults, PluginCtx } from '../../compiler/plugin/plugin-interfaces';
 
 
 export class StyleMinifyPlugin implements Plugin {
-  cache: { [key: string]: string } = {};
 
-  async transform(opts: PluginTransformOptions) {
-    if (!opts.config.minifyCss || !this.usePlugin(opts.id)) {
+  async transform(sourceText: string, id: string, context: PluginCtx) {
+    if (!context.config.minifyCss || !this.usePlugin(id)) {
       return null;
     }
 
-    const results: PluginTransformResults = {
-      code: opts.code,
-      diagnostics: []
-    };
+    const results: PluginTransformResults = {};
 
-    const cacheKey = opts.sys.generateContentHash(opts.code, 24);
+    const cacheKey = this.name + context.sys.generateContentHash(sourceText, 24);
+    const cachedContent = await context.cache.get(cacheKey);
 
-    if (this.cache[cacheKey]) {
-      results.code = this.cache[cacheKey];
+    if (cachedContent !== null) {
+      results.code = cachedContent;
 
     } else {
-      const minifyResults = opts.sys.minifyCss(results.code);
+      const minifyResults = context.sys.minifyCss(results.code);
       minifyResults.diagnostics.forEach(d => {
-        results.diagnostics.push(d);
+        context.diagnostics.push(d);
       });
 
       if (minifyResults.output) {
         results.code = minifyResults.output;
-        this.cache[cacheKey] = results.code;
+        await context.cache.put(cacheKey, results.code);
       }
     }
 

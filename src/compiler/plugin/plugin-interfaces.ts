@@ -1,68 +1,26 @@
+import { Cache } from '../cache';
 import { Config, Diagnostic, StencilSystem } from '../../util/interfaces';
 import { InMemoryFileSystem } from '../../util/in-memory-fs';
 
 
 export interface Plugin {
-  load?: PluginLoadFn;
-  name?: string;
-  resolveId?: PluginResolveIdFn;
-  transform?: PluginTransformFn;
-}
-
-export type PluginLoadFn = (opts: PluginLoadOptions) => Promise<PluginLoadResults>;
-
-
-export interface PluginLoadResults {
-  code: string;
-  id: string;
-}
-
-
-export interface PluginLoadOptions extends PluginOptions {
-  id: string;
-}
-
-export type PluginResolveIdFn = (opts: PluginResolveIdOptions) => Promise<PluginResolveIdResults>;
-
-
-export interface PluginResolveIdOptions extends PluginOptions {
-  importee: string;
-  importer: string;
-}
-
-
-export interface PluginResolveIdResults {
-  id: string;
-}
-
-
-export type PluginTransformFn = (opts: PluginTransformOptions) => Promise<PluginTransformResults>;
-
-
-export interface PluginTransformOptions extends PluginOptions {
-  code: string;
-  id: string;
+  load?: (id: string, context?: PluginCtx) => Promise<string>;
+  name: string;
+  resolveId?: (importee: string, importer: string, context?: PluginCtx) => Promise<string>;
+  transform?: (sourceText: string, id?: string, context?: PluginCtx) => Promise<PluginTransformResults>;
 }
 
 
 export interface PluginTransformResults {
-  code: string;
+  code?: string;
   id?: string;
-  diagnostics?: Diagnostic[];
 }
 
 
-export interface PluginOptions {
+export interface PluginCtx {
   config: Config;
   sys: StencilSystem;
   fs: InMemoryFileSystem;
-  filesWritten: string[];
-  filesCopied: string[];
-  filesDeleted: string[];
-  dirsDeleted: string[];
-  dirsAdded: string[];
-  filesChanged: string[];
-  filesUpdated: string[];
-  filesAdded: string[];
+  cache: Cache;
+  diagnostics: Diagnostic[];
 }
-

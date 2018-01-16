@@ -1,4 +1,5 @@
 import { BuildEvents } from '../compiler/events';
+import { Cache } from '../compiler/cache';
 import { CssClassMap } from './jsx-interfaces';
 export { CssClassMap } from './jsx-interfaces';
 import { ENCAPSULATION, MEMBER_TYPE, PROP_TYPE, RUNTIME_ERROR } from './constants';
@@ -476,6 +477,7 @@ export interface CompilerCtx {
   activeBuildId?: number;
   isRebuild?: boolean;
   fs?: InMemoryFileSystem;
+  cache?: Cache;
   events?: BuildEvents;
   moduleFiles?: ModuleFiles;
   rollupCache?: { [cacheKey: string]: any };
@@ -1197,6 +1199,7 @@ export interface StencilSystem {
     lt: (a: string, b: string, loose?: boolean) => boolean;
     lte: (a: string, b: string, loose?: boolean) => boolean;
   };
+  tmpdir?(): string;
   typescript?: any;
   url?: {
     parse(urlStr: string, parseQueryString?: boolean, slashesDenoteHost?: boolean): Url;

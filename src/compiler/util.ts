@@ -1,5 +1,6 @@
 import { BANNER } from '../util/constants';
 import { BuildEvents } from './events';
+import { Cache } from './cache';
 import { Config, CompilerCtx, Diagnostic } from '../util/interfaces';
 import { InMemoryFileSystem } from '../util/in-memory-fs';
 
@@ -7,6 +8,7 @@ import { InMemoryFileSystem } from '../util/in-memory-fs';
 export function getCompilerCtx(config: Config, compilerCtx: CompilerCtx = {}) {
   // reusable data between builds
   compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(config.sys.fs, config.sys.path);
+  compilerCtx.cache = compilerCtx.cache || new Cache(new InMemoryFileSystem(config.sys.fs, config.sys.path), config.sys.path, config.sys.tmpdir());
   compilerCtx.events = compilerCtx.events || new BuildEvents(config);
   compilerCtx.appFiles = compilerCtx.appFiles || {};
   compilerCtx.coreBuilds = compilerCtx.coreBuilds || {};

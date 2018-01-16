@@ -129,6 +129,11 @@ export function mockStencilSystem() {
 
     semver: require('semver'),
 
+    tmpdir() {
+      const os = require('os');
+      return os.tmpdir();
+    },
+
     typescript: require('typescript'),
 
     url: require('url'),
