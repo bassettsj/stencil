@@ -1286,6 +1286,7 @@ export interface Path {
   extname(p: string): string;
   isAbsolute(p: string): boolean;
   join(...paths: string[]): string;
+  parse(pathString: string): { root: string; dir: string; base: string; ext: string; name: string; };
   relative(from: string, to: string): string;
   resolve(...pathSegments: any[]): string;
   sep: string;

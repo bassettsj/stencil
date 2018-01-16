@@ -29,15 +29,11 @@ export class NodeFileSystem implements FileSystem {
   }
 
   readdir(dirPath: string) {
-    console.log('node readdir', dirPath)
     return new Promise<string[]>((resolve, reject) => {
-      console.log('node readdir2', dirPath)
       this.fs.readdir(dirPath, (err: any, files: any) => {
         if (err) {
-          console.log('node err', err)
           reject(err);
         } else {
-          console.log('node files', files)
           resolve(files);
         }
       });
