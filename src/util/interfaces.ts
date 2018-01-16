@@ -3,6 +3,7 @@ import { CssClassMap } from './jsx-interfaces';
 export { CssClassMap } from './jsx-interfaces';
 import { ENCAPSULATION, MEMBER_TYPE, PROP_TYPE, RUNTIME_ERROR } from './constants';
 import { InMemoryFileSystem } from './in-memory-fs';
+import { Plugin } from '../compiler/plugin/plugin-interfaces';
 
 
 export interface CoreContext {
@@ -217,8 +218,8 @@ export interface ManifestCompiler {
 
 
 export interface ModuleFile {
-  dtsFilePath?: string;
   jsFilePath?: string;
+  dtsFilePath?: string;
   cmpMeta?: ComponentMeta;
   isCollectionDependency?: boolean;
   excludeFromCollection?: boolean;
@@ -329,6 +330,7 @@ export interface Config {
   generateWWW?: boolean;
   bundles?: ManifestBundle[];
   collections?: DependentCollection[];
+  plugins?: Plugin[];
   devMode?: boolean;
   watch?: boolean;
   hashFileNames?: boolean;
@@ -488,9 +490,6 @@ export interface CompilerCtx {
     global?: string;
     registryJson?: string;
     [key: string]: string;
-  };
-  appGlobalStyles?: {
-    content?: string;
   };
   appCoreWWWPath?: string;
   coreBuilds?: {[cacheKey: string]: string};
@@ -1193,18 +1192,6 @@ export interface StencilSystem {
       (config: RollupInputConfig): Promise<RollupBundle>;
     };
     plugins: RollupPlugins;
-  };
-  sass?: {
-    render(
-      config: {
-        data?: string;
-        file?: string;
-        includePaths?: string[];
-        outFile?: string;
-        outputStyle?: string;
-      },
-      cb: (err: any, result: {css: string; stats: any}) => void
-    ): void;
   };
   semver?: {
     gt: (a: string, b: string, loose?: boolean) => boolean;

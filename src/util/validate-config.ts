@@ -242,9 +242,10 @@ export function validateBuildConfig(config: Config, setEnvVariables?: boolean) {
     config.excludeSrc = DEFAULT_EXCLUDES.slice();
   }
 
-
   config.collections = config.collections || [];
   config.collections = config.collections.map(validateDependentCollection);
+
+  config.plugins = config.plugins || [];
 
   config.bundles = config.bundles || [];
 

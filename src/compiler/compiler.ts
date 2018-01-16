@@ -1,8 +1,9 @@
 import { BuildResults, Config, CompilerCtx, CompilerEventName, Diagnostic } from '../util/interfaces';
 import { build } from './build/build';
+import { catchError, getCompilerCtx } from './util';
 import { docs } from './docs/docs';
-import { getCompilerCtx, catchError } from './util';
 import { InMemoryFileSystem } from '../util/in-memory-fs';
+import { initPlugins } from './plugin/plugin';
 import { validateBuildConfig } from '../util/validate-config';
 import { validatePrerenderConfig } from './prerender/validate-prerender-config';
 import { validateServiceWorkerConfig } from './service-worker/validate-sw-config';
@@ -16,6 +17,7 @@ export class Compiler {
     this.isValid = isValid(config);
     if (this.isValid) {
       this.ctx = getCompilerCtx(config);
+      initPlugins(config);
     }
   }
 

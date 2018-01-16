@@ -1,5 +1,5 @@
 import { BuildResults, CompilerCtx, Config, WatcherResults } from '../../util/interfaces';
-import { bundle } from '../bundle/bundle';
+import { bundleModules } from '../bundle/bundle';
 import { catchError, getCompilerCtx } from '../util';
 import { copyTasks } from './copy-tasks';
 import { finishBuild, getBuildContext, shouldAbort } from './build-utils';
@@ -13,6 +13,7 @@ import { initWatcher } from '../watcher/watcher-init';
 import { prerenderApp } from '../prerender/prerender-app';
 import { transpileScanSrc } from '../transpile/transpile-scan-src';
 import { writeBuildFiles } from './write-build';
+import { generateStyles } from '../style/style';
 
 
 export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?: WatcherResults): Promise<BuildResults> {
@@ -45,7 +46,11 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
     if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
 
     // bundle modules and styles into separate files phase
-    const bundles = await bundle(config, compilerCtx, buildCtx);
+    const bundles = await bundleModules(config, compilerCtx, buildCtx);
+    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+
+    // create each of the components's styles
+    await generateStyles(config, compilerCtx, buildCtx, bundles);
     if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
 
     // both styles and modules are done bundling

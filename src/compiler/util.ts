@@ -9,7 +9,6 @@ export function getCompilerCtx(config: Config, compilerCtx: CompilerCtx = {}) {
   compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(config.sys.fs, config.sys.path);
   compilerCtx.events = compilerCtx.events || new BuildEvents(config);
   compilerCtx.appFiles = compilerCtx.appFiles || {};
-  compilerCtx.appGlobalStyles = compilerCtx.appGlobalStyles || {};
   compilerCtx.coreBuilds = compilerCtx.coreBuilds || {};
   compilerCtx.moduleFiles = compilerCtx.moduleFiles || {};
   compilerCtx.rollupCache = compilerCtx.rollupCache || {};

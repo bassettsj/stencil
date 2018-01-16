@@ -9,7 +9,7 @@ describe('bundle-module', () => {
 
   describe('build', () => {
 
-    it('should not rebuild without ts changes', async () => {
+    it('should not rebuild without js changes', async () => {
       c.config.watch = true;
       c.config.bundles = [
         { components: ['cmp-a', 'cmp-b'] },
@@ -25,6 +25,8 @@ describe('bundle-module', () => {
       // initial build
       let r = await c.build();
       expect(r.diagnostics).toEqual([]);
+
+      const firstBuildText = await c.fs.readFile('/www/build/app/cmp-a.js');
 
       // create a rebuild listener
       const rebuildListener = c.once('rebuild');
@@ -45,6 +47,9 @@ describe('bundle-module', () => {
       expect(r.stats.components[0]).toBe('cmp-a');
       expect(r.stats.components[1]).toBe('cmp-b');
       expect(r.stats.components[2]).toBe('cmp-c');
+
+      const secondBuildText = await c.fs.readFile('/www/build/app/cmp-a.js');
+      expect(firstBuildText).toBe(secondBuildText);
     });
 
     it('should build 2 bundles of 3 components', async () => {

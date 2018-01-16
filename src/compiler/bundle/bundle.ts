@@ -5,7 +5,7 @@ import { generateBundleModule } from './bundle-module';
 import { upgradeDependentComponents } from '../upgrade-dependents/index';
 
 
-export async function bundle(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
+export async function bundleModules(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   let bundles: Bundle[] = [];
 
   if (config.generateWWW) {

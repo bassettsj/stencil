@@ -278,10 +278,6 @@ export class NodeSystem implements StencilSystem {
     return rollup;
   }
 
-  get sass() {
-    return require('node-sass');
-  }
-
   get semver() {
     return this.sysUtil.semver;
   }

@@ -127,19 +127,6 @@ export function mockStencilSystem() {
 
     rollup: rollup,
 
-    sass: {
-      render: function(config: any, cb: Function) {
-        Promise.resolve().then(() => {
-          const content = `/** ${config.file} mock css **/`;
-
-          cb(null, {
-            css: content,
-            stats: []
-          });
-        });
-      }
-    },
-
     semver: require('semver'),
 
     typescript: require('typescript'),

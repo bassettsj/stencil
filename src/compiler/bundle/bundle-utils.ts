@@ -1,6 +1,6 @@
 import { Bundle, ComponentMeta, ModuleFile } from '../../util/interfaces';
 import { ENCAPSULATION, DEFAULT_STYLE_MODE } from '../../util/constants';
-import { requiresScopedStyles } from '../style/style-utils';
+import { requiresScopedStyles } from '../style/style';
 
 
 export function getBundleModes(moduleFiles: ModuleFile[]) {
