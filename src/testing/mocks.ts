@@ -29,6 +29,11 @@ export function mockPlatform(win?: any, domApi?: DomApi) {
     false,
     null
   );
+  if (domApi) {
+    plt.domApi = domApi;
+  } else {
+    domApi = plt.domApi;
+  }
   plt.isClient = true;
 
   const $mockedQueue = plt.queue = mockQueue();

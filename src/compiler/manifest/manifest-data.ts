@@ -1,5 +1,5 @@
 import { AssetsMeta, BuildCtx, Config, CompilerCtx, ManifestBundle, BundleData,
-  ComponentMeta, ComponentData, EventData, EventMeta, Manifest, ManifestData, ModuleFile, ListenerData,
+  ComponentMeta, ComponentData, EventData, Manifest, ManifestData, ModuleFile, ListenerData,
   ListenMeta, PropData, StyleData, StyleMeta } from '../../util/interfaces';
 import { COLLECTION_MANIFEST_FILE_NAME, ENCAPSULATION, MEMBER_TYPE, PROP_TYPE } from '../../util/constants';
 import { normalizePath } from '../util';
@@ -751,22 +751,13 @@ function parseEvents(cmpData: ComponentData, cmpMeta: ComponentMeta) {
     return;
   }
 
-  cmpMeta.eventsMeta = eventsData.map(eventData => {
-    const eventMeta: EventMeta = {
-      eventName: eventData.event,
-      eventMethodName: eventData.event
-    };
-
-    if (eventData.method) {
-      eventMeta.eventMethodName = eventData.method;
-    }
-
-    eventMeta.eventBubbles = (eventData.bubbles !== false);
-    eventMeta.eventCancelable = (eventData.cancelable !== false);
-    eventMeta.eventComposed = (eventData.composed !== false);
-
-    return eventMeta;
-  });
+  cmpMeta.eventsMeta = eventsData.map(eventData => ({
+    eventName: eventData.event,
+    eventMethodName: (eventData.method) ? eventData.method : eventData.event,
+    eventBubbles: (eventData.bubbles !== false),
+    eventCancelable: (eventData.cancelable !== false),
+    eventComposed: (eventData.composed !== false)
+  }));
 }
 
 

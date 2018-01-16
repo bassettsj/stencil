@@ -1,12 +1,13 @@
 import { BANNER } from '../util/constants';
 import { BuildEvents } from './events';
 import { Cache } from './cache';
-import { Config, CompilerCtx, Diagnostic } from '../util/interfaces';
+import { CompilerCtx, Config, Diagnostic, SourceTarget } from '../util/interfaces';
 import { InMemoryFileSystem } from '../util/in-memory-fs';
 
 
-export function getCompilerCtx(config: Config, compilerCtx: CompilerCtx = {}) {
+export function getCompilerCtx(config: Config, compilerCtx?: CompilerCtx) {
   // reusable data between builds
+  compilerCtx = compilerCtx || {};
   compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(config.sys.fs, config.sys.path);
   compilerCtx.cache = compilerCtx.cache || new Cache(new InMemoryFileSystem(config.sys.fs, config.sys.path), config.sys.path, config.sys.tmpdir());
   compilerCtx.events = compilerCtx.events || new BuildEvents(config);
@@ -22,10 +23,9 @@ export function getCompilerCtx(config: Config, compilerCtx: CompilerCtx = {}) {
     compilerCtx.activeBuildId = -1;
   }
 
-  compilerCtx.lastBuildHadError = false;
-
   return compilerCtx;
 }
+
 
 /**
  * Test if a file is a typescript source file, such as .ts or .tsx.
@@ -99,6 +99,38 @@ export function isWebDevFile(filePath: string) {
 }
 const WEB_DEV_EXT = ['js', 'jsx', 'html', 'htm', 'css', 'scss', 'sass'];
 
+
+export function minifyJs(config: Config, jsText: string, sourceTarget: SourceTarget, preamble: boolean) {
+  const opts: any = { output: {}, compress: {}, mangle: {} };
+
+  if (sourceTarget === 'es5') {
+    opts.ecma = 5;
+    opts.output.ecma = 5;
+    opts.compress.ecma = 5;
+    opts.compress.arrows = false;
+
+  } else {
+    opts.ecma = 6;
+    opts.output.ecma = 6;
+    opts.compress.ecma = 6;
+    opts.compress.arrows = true;
+  }
+
+  if (config.logLevel === 'debug') {
+    opts.mangle.keep_fnames = true;
+    opts.compress.drop_console = false;
+    opts.compress.drop_debugger = false;
+    opts.output.beautify = true;
+    opts.output.bracketize = true;
+    opts.output.indent_level = 2;
+    opts.output.comments = 'all';
+    opts.output.preserve_line = true;
+  }
+  if (preamble) {
+    opts.output.preamble = generatePreamble(config);
+  }
+  return config.sys.minifyJs(jsText, opts);
+}
 
 export function generatePreamble(config: Config) {
   let preamble: string[] = [];
