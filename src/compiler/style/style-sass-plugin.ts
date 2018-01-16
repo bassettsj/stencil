@@ -19,10 +19,10 @@ export class StyleSassPlugin implements Plugin {
     pathParts.push('css');
     results.id = pathParts.join('.');
 
-    const cacheKey = this.name + context.sys.generateContentHash(sourceText, 24);
+    const cacheKey = context.cache.createKey(this.name, sourceText);
     const cachedContent = await context.cache.get(cacheKey);
 
-    if (cachedContent !== null) {
+    if (cachedContent != null) {
       results.code = cachedContent;
 
     } else {
@@ -33,11 +33,23 @@ export class StyleSassPlugin implements Plugin {
           renderOpts.outputStyle = 'expanded';
         }
 
+        renderOpts.includePaths = renderOpts.includePaths || [];
+
+        const dirName = context.sys.path.dirname(id);
+        renderOpts.includePaths.push(dirName);
+
         nodeSass.render(renderOpts, async (err: any, sassResult: any) => {
           if (err) {
             reject(err);
+
           } else {
-            resolve(sassResult.css.toString());
+            const css = sassResult.css.toString();
+
+            // write this css content to memory only so it can be referenced
+            // later by other plugins (minify css)
+            // but no need to actually write to disk
+            await context.fs.writeFile(results.id, css, { inMemoryOnly: true });
+            resolve(css);
           }
         });
       });

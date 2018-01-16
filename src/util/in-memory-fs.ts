@@ -389,9 +389,7 @@ export class InMemoryFileSystem {
         await this.fs.mkdir(dirPath);
         dirsAdded.push(dirPath);
 
-      } catch (e) {
-        console.log('commitEnsureDirs', e);
-      }
+      } catch (e) {}
     }));
 
     return dirsAdded;

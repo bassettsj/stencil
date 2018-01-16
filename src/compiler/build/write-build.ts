@@ -34,6 +34,11 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
     });
     buildCtx.components.sort();
 
+    // successful write
+    // kick off writing the cached file stuff
+    // no need to wait on it finishing
+    compilerCtx.cache.commit();
+
   } catch (e) {
     catchError(buildCtx.diagnostics, e);
   }

@@ -10,19 +10,19 @@ export class StyleMinifyPlugin implements Plugin {
 
     const results: PluginTransformResults = {};
 
-    const cacheKey = this.name + context.sys.generateContentHash(sourceText, 24);
+    const cacheKey = context.cache.createKey(this.name, sourceText);
     const cachedContent = await context.cache.get(cacheKey);
 
-    if (cachedContent !== null) {
+    if (cachedContent != null) {
       results.code = cachedContent;
 
     } else {
-      const minifyResults = context.sys.minifyCss(results.code);
+      const minifyResults = context.sys.minifyCss(sourceText);
       minifyResults.diagnostics.forEach(d => {
         context.diagnostics.push(d);
       });
 
-      if (minifyResults.output) {
+      if (typeof minifyResults.output === 'string') {
         results.code = minifyResults.output;
         await context.cache.put(cacheKey, results.code);
       }

@@ -9,7 +9,7 @@ export function getCompilerCtx(config: Config, compilerCtx?: CompilerCtx) {
   // reusable data between builds
   compilerCtx = compilerCtx || {};
   compilerCtx.fs = compilerCtx.fs || new InMemoryFileSystem(config.sys.fs, config.sys.path);
-  compilerCtx.cache = compilerCtx.cache || new Cache(new InMemoryFileSystem(config.sys.fs, config.sys.path), config.sys.path, config.sys.tmpdir());
+  compilerCtx.cache = compilerCtx.cache || new Cache(config, new InMemoryFileSystem(config.sys.fs, config.sys.path), config.sys.tmpdir());
   compilerCtx.events = compilerCtx.events || new BuildEvents(config);
   compilerCtx.appFiles = compilerCtx.appFiles || {};
   compilerCtx.coreBuilds = compilerCtx.coreBuilds || {};

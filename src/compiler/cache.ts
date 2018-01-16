@@ -1,38 +1,61 @@
+import { Config } from '../util/interfaces';
 import { InMemoryFileSystem } from '../util/in-memory-fs';
-import { Path } from '../util/interfaces';
 
 
 export class Cache {
+  private failedGets = 0;
 
-  constructor(private fs: InMemoryFileSystem, private path: Path, private tmpDir: string) {}
+  constructor(private config: Config, private cacheFs: InMemoryFileSystem, private tmpDir: string) {
+    config.logger.debug(`cache tmpdir: ${tmpDir}`);
+  }
 
   async get(key: string) {
+    if (this.failedGets >= MAX_FAILED_GETS) {
+      if (this.failedGets === MAX_FAILED_GETS) {
+        this.config.logger.debug(`cache had ${this.failedGets} failed gets, skip cache disk reads for remander of build`);
+      }
+      return null;
+    }
+
     let result: string;
     try {
-      result = await this.fs.readFile(this.cacheKey(key));
+      result = await this.cacheFs.readFile(this.getCacheFilePath(key));
+      this.failedGets = 0;
+
     } catch (e) {
+      this.failedGets++;
       result = null;
     }
+
     return result;
   }
 
   async put(key: string, value: string) {
     let result: boolean;
+
     try {
-      await this.fs.writeFile(this.cacheKey(key), value);
+      await this.cacheFs.writeFile(this.getCacheFilePath(key), value);
       result = true;
     } catch (e) {
       result = false;
     }
+
     return result;
   }
 
-  commit() {
-    return this.fs.commit();
+  createKey(domain: string, content: string) {
+    return domain + '_' + this.config.sys.generateContentHash(content, 32);
   }
 
-  private cacheKey(key: string) {
-    return this.path.join(this.tmpDir, key);
+  commit() {
+    this.failedGets = 0;
+    return this.cacheFs.commit();
+  }
+
+  private getCacheFilePath(key: string) {
+    return this.config.sys.path.join(this.tmpDir, key);
   }
 
 }
+
+const MAX_FAILED_GETS = 20;

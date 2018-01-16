@@ -20,7 +20,7 @@ export function initPlugins(config: Config) {
 }
 
 
-export function runPluginResolveId(pluginCtx: PluginCtx, importee: string) {
+export async function runPluginResolveId(pluginCtx: PluginCtx, importee: string) {
   for (let i = 0; i < pluginCtx.config.plugins.length; i++) {
     const plugin = pluginCtx.config.plugins[i];
 
@@ -30,10 +30,13 @@ export function runPluginResolveId(pluginCtx: PluginCtx, importee: string) {
 
         if (results != null) {
           if (typeof results.then === 'function') {
-            return results;
+            const promiseResults = await results;
+            if (promiseResults != null) {
+              return promiseResults as string;
+            }
 
           } else if (typeof results === 'string') {
-            return Promise.resolve(results) as Promise<string>;
+            return results as string;
           }
         }
 
@@ -58,10 +61,13 @@ export async function runPluginLoad(pluginCtx: PluginCtx, id: string) {
 
         if (results != null) {
           if (typeof results.then === 'function') {
-            return results;
+            const promiseResults = await results;
+            if (promiseResults != null) {
+              return promiseResults as string;
+            }
 
           } else if (typeof results === 'string') {
-            return Promise.resolve(results) as Promise<string>;
+            return results as string;
           }
         }
 
