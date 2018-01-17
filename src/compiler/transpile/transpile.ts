@@ -14,62 +14,6 @@ import { removeImports } from './transformers/remove-imports';
 import * as ts from 'typescript';
 
 
-/**
- * This is only used during TESTING
- */
-export function transpileModule(config: Config, compilerOptions: ts.CompilerOptions, path: string, input: string) {
-  const moduleFiles: ModuleFiles = {};
-  const diagnostics: Diagnostic[] = [];
-  const results: TranspileResults = {
-    code: null,
-    diagnostics: null,
-    cmpMeta: null
-  };
-
-  const checkProgram = ts.createProgram([path], compilerOptions);
-
-  // Gather component metadata and type info
-  const files = checkProgram.getSourceFiles().filter(sf => sf.getSourceFile().fileName === path);
-  const metadata = gatherMetadata(config, checkProgram.getTypeChecker(), files);
-
-  if (Object.keys(metadata).length > 0) {
-    const fileMetadata = metadata[path];
-
-    // normalize metadata
-    fileMetadata.stylesMeta = normalizeStyles(config, path, fileMetadata.stylesMeta);
-    fileMetadata.assetsDirsMeta = normalizeAssetsDir(config, path, fileMetadata.assetsDirsMeta);
-
-    // assign metadata to module files
-    moduleFiles['module.tsx'] = {
-      cmpMeta: fileMetadata
-    };
-  }
-
-  const transpileOpts = {
-    compilerOptions: compilerOptions,
-    transformers: {
-      before: [
-        removeDecorators(),
-        removeImports(),
-        addComponentMetadata(moduleFiles)
-      ]
-    }
-  };
-  const tsResults = ts.transpileModule(input, transpileOpts);
-
-  loadTypeScriptDiagnostics('', diagnostics, tsResults.diagnostics);
-
-  if (diagnostics.length) {
-    results.diagnostics = diagnostics;
-  }
-
-  results.code = tsResults.outputText;
-  results.cmpMeta = moduleFiles['module.tsx'] ? moduleFiles['module.tsx'].cmpMeta : null;
-
-  return results;
-}
-
-
 export async function transpileModules(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, tsFilePaths: string[]) {
   if (hasError(buildCtx.diagnostics)) {
     // we've already got an error, let's not continue
@@ -179,6 +123,62 @@ function transpileProgram(program: ts.Program, tsHost: ts.CompilerHost, config: 
 
     loadTypeScriptDiagnostics(config.rootDir, buildCtx.diagnostics, tsDiagnostics);
   }
+}
+
+
+/**
+ * This is only used during TESTING
+ */
+export function transpileModule(config: Config, compilerOptions: ts.CompilerOptions, path: string, input: string) {
+  const moduleFiles: ModuleFiles = {};
+  const diagnostics: Diagnostic[] = [];
+  const results: TranspileResults = {
+    code: null,
+    diagnostics: null,
+    cmpMeta: null
+  };
+
+  const checkProgram = ts.createProgram([path], compilerOptions);
+
+  // Gather component metadata and type info
+  const files = checkProgram.getSourceFiles().filter(sf => sf.getSourceFile().fileName === path);
+  const metadata = gatherMetadata(config, checkProgram.getTypeChecker(), files);
+
+  if (Object.keys(metadata).length > 0) {
+    const fileMetadata = metadata[path];
+
+    // normalize metadata
+    fileMetadata.stylesMeta = normalizeStyles(config, path, fileMetadata.stylesMeta);
+    fileMetadata.assetsDirsMeta = normalizeAssetsDir(config, path, fileMetadata.assetsDirsMeta);
+
+    // assign metadata to module files
+    moduleFiles['module.tsx'] = {
+      cmpMeta: fileMetadata
+    };
+  }
+
+  const transpileOpts = {
+    compilerOptions: compilerOptions,
+    transformers: {
+      before: [
+        removeDecorators(),
+        removeImports(),
+        addComponentMetadata(moduleFiles)
+      ]
+    }
+  };
+  const tsResults = ts.transpileModule(input, transpileOpts);
+
+  loadTypeScriptDiagnostics('', diagnostics, tsResults.diagnostics);
+
+  if (diagnostics.length) {
+    results.diagnostics = diagnostics;
+  }
+
+  results.code = tsResults.outputText;
+  results.cmpMeta = moduleFiles['module.tsx'] ? moduleFiles['module.tsx'].cmpMeta : null;
+
+  return results;
 }
 
 
