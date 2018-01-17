@@ -523,6 +523,8 @@ export interface BuildCtx {
   filesChanged: string[];
   filesUpdated: string[];
   filesAdded: string[];
+  shouldAbort?(): boolean;
+  finish?(): BuildResults;
 }
 
 

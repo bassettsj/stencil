@@ -37,14 +37,22 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
     filesAdded: watcher ? watcher.filesAdded : [],
     filesDeleted: watcher ? watcher.filesDeleted : [],
     dirsDeleted: watcher ? watcher.dirsDeleted : [],
-    dirsAdded: watcher ? watcher.dirsAdded : [],
+    dirsAdded: watcher ? watcher.dirsAdded : []
+  };
+
+  buildCtx.shouldAbort = () => {
+    return shouldAbort(compilerCtx, buildCtx);
+  };
+
+  buildCtx.finish = () => {
+    return finishBuild(config, compilerCtx, buildCtx);
   };
 
   return buildCtx;
 }
 
 
-export function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
+function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   const buildResults = generateBuildResults(config, compilerCtx, buildCtx);
 
   // print print any errors/warnings
@@ -88,7 +96,7 @@ export function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: 
 }
 
 
-export function generateBuildResults(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
+function generateBuildResults(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
   // create the build results that get returned
   const buildResults: BuildResults = {
     buildId: buildCtx.buildId,
@@ -128,7 +136,7 @@ function generateBuildResultsStats(compilerCtx: CompilerCtx, buildCtx: BuildCtx,
 }
 
 
-export function shouldAbort(ctx: CompilerCtx, buildCtx: BuildCtx) {
+function shouldAbort(ctx: CompilerCtx, buildCtx: BuildCtx) {
   if (ctx.activeBuildId > buildCtx.buildId) {
     buildCtx.aborted = true;
     return true;

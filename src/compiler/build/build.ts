@@ -2,7 +2,7 @@ import { BuildResults, CompilerCtx, Config, WatcherResults } from '../../util/in
 import { bundleModules } from '../bundle/bundle';
 import { catchError, getCompilerCtx } from '../util';
 import { copyTasks } from '../copy/copy-tasks';
-import { finishBuild, getBuildContext, shouldAbort } from './build-utils';
+import { getBuildContext } from './build-utils';
 import { generateAppFiles } from '../app/generate-app-files';
 import { generateAppManifest } from '../manifest/generate-manifest';
 import { generateBundles } from '../bundle/generate-bundles';
@@ -35,7 +35,7 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
     if (await !initIndexHtml(config, compilerCtx, buildCtx)) {
       // error initializing the index.html file
       // something's wrong, so let's not continue
-      return finishBuild(config, compilerCtx, buildCtx);
+      return buildCtx.finish();
     }
 
     if (!compilerCtx.isRebuild) {
@@ -47,53 +47,54 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
     // async scan the src directory for ts files
     // then transpile them all in one go
     await transpileScanSrc(config, compilerCtx, buildCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // generation the app manifest from the compiled module file results
     // and from all the dependent collections
     await generateAppManifest(config, compilerCtx, buildCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // bundle modules and styles into separate files phase
     const bundles = await bundleModules(config, compilerCtx, buildCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // create each of the components's styles
     await generateStyles(config, compilerCtx, buildCtx, bundles);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // both styles and modules are done bundling
     // inject the styles into the modules and
     // generate each of the output bundles
     const cmpRegistry = generateBundles(config, compilerCtx, buildCtx, bundles);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // generate the app files, such as app.js, app.core.js
     await generateAppFiles(config, compilerCtx, buildCtx, bundles, cmpRegistry);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // copy all assets
     if (!compilerCtx.isRebuild) {
       // only do the initial copy on the first build
       // watcher handles any re-copies
       await copyTasks(config, compilerCtx, buildCtx);
-      if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+      if (buildCtx.shouldAbort()) return buildCtx.finish();
     }
 
     // build index file and service worker
     await generateIndexHtml(config, compilerCtx, buildCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // generate each of the readmes
     await generateReadmes(config, compilerCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // prerender that app
     await prerenderApp(config, compilerCtx, buildCtx, bundles);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // write all the files and copy asset files
     await writeBuildFiles(config, compilerCtx, buildCtx);
-    if (shouldAbort(compilerCtx, buildCtx)) return finishBuild(config, compilerCtx, buildCtx);
+    if (buildCtx.shouldAbort()) return buildCtx.finish();
 
     // setup watcher if need be
     initWatcher(config, compilerCtx, buildCtx);
@@ -104,5 +105,5 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
   }
 
   // return what we've learned today
-  return finishBuild(config, compilerCtx, buildCtx);
+  return buildCtx.finish();
 }

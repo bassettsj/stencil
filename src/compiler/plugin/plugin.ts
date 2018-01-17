@@ -130,7 +130,7 @@ export async function runPluginTransforms(config: Config, compilerCtx: CompilerC
 
       } catch (e) {
         const d = catchError(buildCtx.diagnostics, e);
-        d.header = `${plugin.name} transform error`;
+        d.header = `${plugin.name} transform error: ${id}`;
       }
     }
   }
