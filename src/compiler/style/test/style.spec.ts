@@ -47,6 +47,23 @@ describe('component-styles', () => {
       expect(content.includes('body { color: red; }')).toBe(true);
     });
 
+    it('should minify styleUrl', async () => {
+      c.config.bundles = [ { components: ['cmp-a'] } ];
+      c.config.minifyCss = true;
+      await c.fs.writeFiles({
+        '/src/cmp-a.tsx': `@Component({ tag: 'cmp-a', styleUrl: 'cmp-a.scss' }) export class CmpA {}`,
+        '/src/cmp-a.scss': `body {    color:        red;    /** plz  minify me **/ }`
+      });
+      await c.fs.commit();
+
+      const r = await c.build();
+      expect(r.diagnostics).toEqual([]);
+
+      const content = await c.fs.readFile('/www/build/app/cmp-a.js');
+      expect(content.includes(`body{color:red}`)).toBe(true);
+    });
+
+
     it('should build one component w/ styleUrl', async () => {
       c.config.bundles = [ { components: ['cmp-a'] } ];
       await c.fs.writeFiles({

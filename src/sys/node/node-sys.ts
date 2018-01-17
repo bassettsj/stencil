@@ -11,17 +11,10 @@ import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
 
-const Module = require('module');
-const rollup = require('rollup');
-rollup.plugins = {
-  commonjs: require('rollup-plugin-commonjs'),
-  nodeResolve: require('rollup-plugin-node-resolve')
-};
-
 
 export class NodeSystem implements StencilSystem {
   private packageJsonData: PackageJsonData;
-  private distClientDir: string;
+  private distDir: string;
   private runtime: string;
   private sysUtil: any;
   private typescriptPackageJson: PackageJsonData;
@@ -35,11 +28,10 @@ export class NodeSystem implements StencilSystem {
     this.path = path;
 
     const rootDir = path.join(__dirname, '../../..');
-    const distDir = path.join(rootDir, 'dist');
+    this.distDir = path.join(rootDir, 'dist');
 
-    this.sysUtil = require(path.join(distDir, 'sys/node/sys-util.js'));
-    this.distClientDir = path.join(distDir, 'client');
-    this.runtime = path.join(distDir, 'compiler/index.js');
+    this.sysUtil = require(path.join(this.distDir, 'sys/node/sys-util.js'));
+    this.runtime = path.join(this.distDir, 'compiler/index.js');
 
     try {
       this.packageJsonData = require(path.join(rootDir, 'package.json'));
@@ -104,7 +96,7 @@ export class NodeSystem implements StencilSystem {
   }
 
   getClientCoreFile(opts: any) {
-    const filePath = path.join(this.distClientDir, opts.staticName);
+    const filePath = path.join(this.distDir, 'client', opts.staticName);
     return this.fs.readFile(filePath);
   }
 
@@ -164,7 +156,8 @@ export class NodeSystem implements StencilSystem {
   }
 
   minifyCss(input: string) {
-    const CleanCSS = require('./clean-css.js').cleanCss;
+    const cleanCssModule = path.join(this.distDir, 'sys/node/clean-css.js');
+    const CleanCSS = require(cleanCssModule).cleanCss;
     const result = new CleanCSS().minify(input);
     const diagnostics: Diagnostic[] = [];
 
@@ -223,6 +216,8 @@ export class NodeSystem implements StencilSystem {
   }
 
   resolveModule(fromDir: string, moduleId: string) {
+    const Module = require('module');
+
     fromDir = path.resolve(fromDir);
     const fromFile = path.join(fromDir, 'noop.js');
 
@@ -252,6 +247,11 @@ export class NodeSystem implements StencilSystem {
   }
 
   get rollup() {
+    const rollup = require('rollup');
+    rollup.plugins = {
+      commonjs: require('rollup-plugin-commonjs'),
+      nodeResolve: require('rollup-plugin-node-resolve')
+    };
     return rollup;
   }
 
