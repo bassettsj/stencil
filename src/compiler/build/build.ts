@@ -13,7 +13,7 @@ import { initIndexHtml } from '../html/init-index-html';
 import { initWatcher } from '../watcher/watcher-init';
 import { prerenderApp } from '../prerender/prerender-app';
 import { transpileScanSrc } from '../transpile/transpile-scan-src';
-import { writeBuildFiles } from './write-build';
+import { writeBuildFiles, emptyDestDir } from './write-build';
 
 
 export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?: WatcherResults): Promise<BuildResults> {
@@ -32,6 +32,11 @@ export async function build(config: Config, compilerCtx?: CompilerCtx, watcher?:
       // error initializing the index.html file
       // something's wrong, so let's not continue
       return finishBuild(config, compilerCtx, buildCtx);
+    }
+
+    if (!compilerCtx.isRebuild) {
+      // empty the directories on the first build
+      await emptyDestDir(config, compilerCtx);
     }
 
     // begin the build

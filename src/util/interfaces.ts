@@ -516,7 +516,6 @@ export interface BuildCtx {
   startTime: number;
   hasChangedJsText: boolean;
   filesWritten: string[];
-  filesCopied: string[];
   filesDeleted: string[];
   dirsDeleted: string[];
   dirsAdded: string[];

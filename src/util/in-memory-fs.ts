@@ -330,21 +330,59 @@ export class InMemoryFileSystem {
     }));
   }
 
+  async commitCopy() {
+    const dirsToEnsure: string[] = [];
+
+    const copyFileTasks: FsCopyFileTask[] = this.copyFileTasks.map(copyFileTask => {
+      const dir = normalizePath(this.path.dirname(copyFileTask.dest));
+      if (!dirsToEnsure.includes(dir)) {
+        dirsToEnsure.push(dir);
+      }
+      return {
+        src: copyFileTask.src,
+        dest: copyFileTask.dest
+      };
+    });
+    this.copyFileTasks.length = 0;
+
+    // add all the ancestor directories for each directory too
+    for (let i = 0, ilen = dirsToEnsure.length; i < ilen; i++) {
+      const segments = dirsToEnsure[i].split('/');
+
+      for (let j = 2; j < segments.length; j++) {
+        const dir = segments.slice(0, j).join('/');
+        if (!dirsToEnsure.includes(dir)) {
+          dirsToEnsure.push(dir);
+        }
+      }
+    }
+
+    // sort so the the shortest paths ensured first
+    dirsToEnsure.sort((a, b) => {
+      const segmentsA = a.split('/').length;
+      const segmentsB = b.split('/').length;
+      if (segmentsA < segmentsB) return -1;
+      if (segmentsA > segmentsB) return 1;
+      if (a.length < b.length) return -1;
+      if (a.length > b.length) return 1;
+      return 0;
+    });
+
+    await this.commitEnsureDirs(dirsToEnsure);
+
+    await Promise.all(copyFileTasks.map(async copyFileTask => {
+      await this.fs.copyFile(copyFileTask.src, copyFileTask.dest);
+    }));
+  }
+
   async commit() {
-    const instructions = getCommitInstructions(this.path, this.d, this.copyFileTasks);
+    const instructions = getCommitInstructions(this.path, this.d);
 
     // ensure directories we need exist
     const dirsAdded = await this.commitEnsureDirs(instructions.dirsToEnsure);
 
     // write all queued the files
-    // copy all the files queued to be copied
-    const results = await Promise.all([
-      this.commitWriteFiles(instructions.filesToWrite),
-      this.commitCopyFiles(instructions.copyFileTasks)
-    ]);
-
-    // empty the copy file tasks
-    this.copyFileTasks.length = 0;
+    const filesWritten = await this.commitWriteFiles(instructions.filesToWrite);
 
     // remove all the queued files to be deleted
     const filesDeleted = await this.commitDeleteFiles(instructions.filesToDelete);
@@ -362,8 +400,7 @@ export class InMemoryFileSystem {
 
     // return only the files that were
     return {
-      filesWritten: results[0],
-      filesCopied: results[1],
+      filesWritten: filesWritten,
       filesDeleted: filesDeleted,
       dirsDeleted: dirsDeleted,
       dirsAdded: dirsAdded
@@ -373,10 +410,12 @@ export class InMemoryFileSystem {
   private async commitEnsureDirs(dirsToEnsure: string[]) {
     const dirsAdded: string[] = [];
 
-    await Promise.all(dirsToEnsure.map(async dirPath => {
+    for (let i = 0; i < dirsToEnsure.length; i++) {
+      const dirPath = dirsToEnsure[i];
+
       if (this.d[dirPath] && this.d[dirPath].exists && this.d[dirPath].isDirectory) {
         // already cached that this path is indeed an existing directory
-        return;
+        continue;
       }
 
       try {
@@ -390,7 +429,7 @@ export class InMemoryFileSystem {
         dirsAdded.push(dirPath);
 
       } catch (e) {}
-    }));
+    }
 
     return dirsAdded;
   }
@@ -410,18 +449,16 @@ export class InMemoryFileSystem {
     }));
   }
 
-  private commitDeleteDirs(dirsToDelete: string[]) {
-    return Promise.all(dirsToDelete.map(async dirPath => {
-      await this.fs.rmdir(dirPath);
-      return dirPath;
-    }));
-  }
+  private async commitDeleteDirs(dirsToDelete: string[]) {
+    const dirsDeleted: string[] = [];
 
-  private commitCopyFiles(copyFileTasks: FsCopyFileTask[]) {
-    return Promise.all(copyFileTasks.map(async copyFileTask => {
-      await this.fs.copyFile(copyFileTask.src, copyFileTask.dest);
-      return copyFileTask.dest;
-    }));
+    for (let i = 0; i < dirsToDelete.length; i++) {
+      const dirPath = dirsToDelete[i];
+      await this.fs.rmdir(dirPath);
+      dirsDeleted.push(dirPath);
+    }
+
+    return dirsDeleted;
   }
 
   clearDirCache(dirPath: string) {
@@ -452,13 +489,12 @@ export class InMemoryFileSystem {
 }
 
 
-export function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsCopyFileTask[]) {
+export function getCommitInstructions(path: Path, d: FsItems) {
   const instructions = {
     filesToDelete: [] as string[],
     filesToWrite: [] as string[],
     dirsToDelete: [] as string[],
-    dirsToEnsure: [] as string[],
-    copyFileTasks: copyFileTasks
+    dirsToEnsure: [] as string[]
   };
 
   Object.keys(d).forEach(filePath => {
@@ -491,13 +527,6 @@ export function getCommitInstructions(path: Path, d: FsItems, copyFileTasks: FsC
 
     item.queueDeleteFromDisk = false;
     item.queueWriteToDisk = false;
-  });
-
-  copyFileTasks.map(copyFileTask => {
-    const dir = normalizePath(path.dirname(copyFileTask.dest));
-    if (!instructions.dirsToEnsure.includes(dir)) {
-      instructions.dirsToEnsure.push(dir);
-    }
   });
 
   // add all the ancestor directories for each directory too

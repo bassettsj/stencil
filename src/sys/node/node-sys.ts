@@ -257,7 +257,7 @@ export class NodeSystem implements StencilSystem {
 
   tmpdir() {
     const os = require('os');
-    return os.tmpdir();
+    return this.path.join(os.tmpdir(), 'stencil');
   }
 
   get typescript() {

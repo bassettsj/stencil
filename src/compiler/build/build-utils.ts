@@ -32,7 +32,6 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
     components: [],
     hasChangedJsText: false,
     filesWritten: [],
-    filesCopied: [],
     filesChanged: watcher ? watcher.filesChanged : [],
     filesUpdated: watcher ? watcher.filesUpdated : [],
     filesAdded: watcher ? watcher.filesAdded : [],
@@ -46,30 +45,36 @@ export function getBuildContext(config: Config, compilerCtx: CompilerCtx, watche
 
 
 export function finishBuild(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
-  buildCtx.diagnostics = cleanDiagnostics(buildCtx.diagnostics);
-  config.logger.printDiagnostics(buildCtx.diagnostics);
+  const buildResults = generateBuildResults(config, compilerCtx, buildCtx);
 
-  if (buildCtx.aborted) {
-    buildCtx.timeSpan.finish('...', 'dim', false, true);
+  // print print any errors/warnings
+  config.logger.printDiagnostics(buildResults.diagnostics);
+
+  // create a nice pretty message stating what happend
+  const buildText = compilerCtx.isRebuild ? 'rebuild' : 'build';
+  let watchText = config.watch ? ', watching for changes...' : '';
+  let buildStatus = 'finished';
+  let statusColor = 'green';
+  let bold = true;
+
+  if (buildResults.hasError) {
+    compilerCtx.lastBuildHadError = true;
+    buildStatus = 'failed';
+    statusColor = 'red';
+
+  } else if (buildResults.aborted) {
+    buildStatus = 'aborted';
+    watchText = '';
+    statusColor = 'dim';
+    bold = false;
 
   } else {
-    // create a nice pretty message stating what happend
-    const buildText = compilerCtx.isRebuild ? 'rebuild' : 'build';
-    const watchText = config.watch ? ', watching for changes...' : '';
-    let buildStatus = 'finished';
-    let statusColor = 'green';
-
-    if (hasError(buildCtx.diagnostics)) {
-      buildStatus = 'failed';
-      statusColor = 'red';
-    }
-
-    // print out the time it took to build
-    // and add the duration to the build results
-    buildCtx.timeSpan.finish(`${buildText} ${buildStatus}${watchText}`, statusColor, true, true);
+    compilerCtx.lastBuildHadError = false;
   }
 
-  const buildResults = generateBuildResults(config, compilerCtx, buildCtx);
+  // print out the time it took to build
+  // and add the duration to the build results
+  buildCtx.timeSpan.finish(`${buildText} ${buildStatus}${watchText}`, statusColor, bold, true);
 
   // emit a build event, which happens for inital build and rebuilds
   compilerCtx.events.emit('build', buildResults);
@@ -87,7 +92,7 @@ export function generateBuildResults(config: Config, compilerCtx: CompilerCtx, b
   // create the build results that get returned
   const buildResults: BuildResults = {
     buildId: buildCtx.buildId,
-    diagnostics: buildCtx.diagnostics,
+    diagnostics: cleanDiagnostics(buildCtx.diagnostics),
     hasError: hasError(buildCtx.diagnostics),
     aborted: buildCtx.aborted
   };

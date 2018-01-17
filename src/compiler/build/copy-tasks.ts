@@ -22,9 +22,11 @@ export async function copyTasks(config: Config, compilerCtx: CompilerCtx, buildC
       return processCopyTasks(config, compilerCtx, allCopyTasks, copyTask);
     }));
 
-    await Promise.all(allCopyTasks.map(copyTask => {
-      return compilerCtx.fs.copy(copyTask.src, copyTask.dest, { filter: copyTask.filter });
+    await Promise.all(allCopyTasks.map(async copyTask => {
+      await compilerCtx.fs.copy(copyTask.src, copyTask.dest, { filter: copyTask.filter });
     }));
+
+    await compilerCtx.fs.commitCopy();
 
   } catch (e) {
     catchError(buildCtx.diagnostics, e);

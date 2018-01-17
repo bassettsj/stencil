@@ -1,6 +1,5 @@
 import { BuildCtx, Config, CompilerCtx, Diagnostic } from '../../util/interfaces';
 import { buildError, buildWarn, normalizePath } from '../util';
-import { COLLECTION_DEPENDENCIES_DIR } from '../manifest/manifest-data';
 import { COLLECTION_MANIFEST_FILE_NAME } from '../../util/constants';
 import { getLoaderFileName } from '../app/app-file-naming';
 import { pathJoin } from '../util';
@@ -13,9 +12,8 @@ export async function generateDistribution(config: Config, compilerCtx: Compiler
     return;
   }
 
-  return Promise.all([
+  await Promise.all([
     readPackageJson(config, compilerCtx, buildCtx),
-    copySourceCollectionComponentsToDistribution(config, compilerCtx, buildCtx),
     generateTypes(config, compilerCtx)
   ]);
 }
@@ -99,25 +97,6 @@ export function validatePackageFiles(config: Config, diagnostics: Diagnostic[], 
       err.messageText = `package.json "files" array must contain the distribution directory "${actualDistDir}/" when generating a distribution.`;
     }
   }
-}
-
-
-function copySourceCollectionComponentsToDistribution(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
-  // for any components that are dependencies, such as ionicons is a dependency of ionic
-  // then we need to copy the dependency to the dist so it just works downstream
-  const promises: Promise<any>[] = [];
-
-  buildCtx.manifest.modulesFiles.forEach(moduleFile => {
-    if (!moduleFile.isCollectionDependency || !moduleFile.originalCollectionComponentPath) return;
-
-    const src = moduleFile.jsFilePath;
-    const dest = config.sys.path.join(config.collectionDir, COLLECTION_DEPENDENCIES_DIR, moduleFile.originalCollectionComponentPath);
-    const copyPromise = compilerCtx.fs.copy(src, dest);
-
-    promises.push(copyPromise);
-  });
-
-  return Promise.all(promises);
 }
 
 

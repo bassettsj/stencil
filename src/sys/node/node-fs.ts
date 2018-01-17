@@ -7,12 +7,14 @@ export class NodeFileSystem implements FileSystem {
 
   copyFile(src: string, dest: string) {
     return new Promise<void>((resolve, reject) => {
-      const input = this.fs.createReadStream(src);
-      const output = input.pipe(this.fs.createWriteStream(dest));
-      input.on('error', reject);
-      output.on('error', reject);
-      output.on('close', resolve);
-      output.on('finish', resolve);
+      const rd = this.fs.createReadStream(src);
+      rd.on('error', reject);
+
+      const wr = this.fs.createWriteStream(dest);
+      wr.on('error', reject);
+      wr.on('close', resolve);
+
+      rd.pipe(wr);
     });
   }
 

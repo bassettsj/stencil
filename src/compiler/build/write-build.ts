@@ -11,10 +11,12 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
 
   const timeSpan = config.logger.createTimeSpan(`writeBuildFiles started`, true);
 
-  if (!compilerCtx.isRebuild) {
-    // empty the directories on the first build
-    await emptyDestDir(config, compilerCtx);
-  }
+  // kick off copying component assets
+  // and copy www/build to dist/ if generateDistribution is enabled
+  await Promise.all([
+    copyComponentAssets(config, compilerCtx, buildCtx),
+    generateDistribution(config, compilerCtx, buildCtx)
+  ]);
 
   let totalFilesWrote = 0;
 
@@ -22,7 +24,6 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
     const commitResults = await compilerCtx.fs.commit();
 
     buildCtx.filesWritten = commitResults.filesWritten;
-    buildCtx.filesCopied = commitResults.filesCopied;
     buildCtx.filesDeleted = commitResults.filesDeleted;
     buildCtx.dirsDeleted = commitResults.dirsDeleted;
     buildCtx.dirsAdded = commitResults.dirsAdded;
@@ -43,18 +44,11 @@ export async function writeBuildFiles(config: Config, compilerCtx: CompilerCtx, 
     catchError(buildCtx.diagnostics, e);
   }
 
-  // kick off copying component assets
-  // and copy www/build to dist/ if generateDistribution is enabled
-  await Promise.all([
-    copyComponentAssets(config, compilerCtx, buildCtx),
-    generateDistribution(config, compilerCtx, buildCtx)
-  ]);
-
   timeSpan.finish(`writeBuildFiles finished, files wrote: ${totalFilesWrote}`);
 }
 
 
-function emptyDestDir(config: Config, compilerCtx: CompilerCtx) {
+export async function emptyDestDir(config: Config, compilerCtx: CompilerCtx) {
   // empty promises :(
   const emptyPromises: Promise<any>[] = [];
 
@@ -68,5 +62,7 @@ function emptyDestDir(config: Config, compilerCtx: CompilerCtx) {
     emptyPromises.push(compilerCtx.fs.emptyDir(config.distDir));
   }
   // let's empty out the build dest directory
-  return Promise.all(emptyPromises);
+  await Promise.all(emptyPromises);
+
+  await compilerCtx.fs.commit();
 }
