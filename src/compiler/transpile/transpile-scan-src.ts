@@ -18,7 +18,7 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
     // looking for typescript files to transpile
     // and read the files async and put into our
     // in-memory file system
-    const tsFilePaths = await getTsFilePaths(config, compilerCtx.fs, config.srcDir);
+    const tsFilePaths = await scanDirForTsFiles(config, compilerCtx.fs, config.srcDir);
 
     // let's be sure to clean out the moduleFiles in the compiler context
     // some components may have been deleted since the last build
@@ -38,7 +38,9 @@ export async function transpileScanSrc(config: Config, compilerCtx: CompilerCtx,
 }
 
 
-async function getTsFilePaths(config: Config, fs: InMemoryFileSystem, dir: string): Promise<any> {
+async function scanDirForTsFiles(config: Config, fs: InMemoryFileSystem, dir: string): Promise<any> {
+  const scanDirTimeSpan = config.logger.createTimeSpan(`scan ${config.srcDir} for ts files started`, true);
+
   // loop through this directory and sub directories looking for
   // files that need to be transpiled
   const dirItems = await fs.readdir(dir, { recursive: true });
@@ -53,6 +55,8 @@ async function getTsFilePaths(config: Config, fs: InMemoryFileSystem, dir: strin
   await Promise.all(tsFileItems.map(async tsFileItem => {
     await fs.readFile(tsFileItem.absPath);
   }));
+
+  scanDirTimeSpan.finish(`scan for ts files finished`);
 
   // return just the abs path
   return tsFileItems.map(tsFileItem => tsFileItem.absPath);

@@ -109,7 +109,7 @@ export async function transpileModules(config: Config, compilerCtx: CompilerCtx,
   buildCtx.transpileBuildCount = checkProgramTsFiles.length;
 
   // run the first program that only does the checking
-  const checkProgram = ts.createProgram(checkProgramTsFiles, tsOptions, tsHost);
+  const checkProgram = ts.createProgram(checkProgramTsFiles, tsOptions, tsHost, compilerCtx.tsProgramCache);
 
   // Gather component metadata and type info
   const metadata = gatherMetadata(config, checkProgram.getTypeChecker(), checkProgram.getSourceFiles());
@@ -143,10 +143,10 @@ export async function transpileModules(config: Config, compilerCtx: CompilerCtx,
   }
 
   // create another program, but use the previous checkProgram to speed it up
-  const program = ts.createProgram(programTsFiles, tsOptions, tsHost, checkProgram);
+  compilerCtx.tsProgramCache = ts.createProgram(programTsFiles, tsOptions, tsHost, checkProgram);
 
   // run the second program again with our new typed info
-  transpileProgram(program, tsHost, config, compilerCtx, buildCtx);
+  transpileProgram(compilerCtx.tsProgramCache, tsHost, config, compilerCtx, buildCtx);
 
   // figure out if we actually have changed JS text that was written
   const writeResults = await Promise.all(writeQueue);
