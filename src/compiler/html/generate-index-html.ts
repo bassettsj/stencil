@@ -19,7 +19,7 @@ export async function generateIndexHtml(config: Config, compilerCtx: CompilerCtx
     const indexSrcHtml = await compilerCtx.fs.readFile(config.srcIndexHtml);
 
     try {
-      setIndexHtmlContent(config, compilerCtx, indexSrcHtml);
+      await setIndexHtmlContent(config, compilerCtx, indexSrcHtml);
 
     } catch (e) {
       catchError(buildCtx.diagnostics, e);
@@ -41,7 +41,7 @@ function canSkipGenerateIndexHtml(config: Config, compilerCtx: CompilerCtx, buil
 }
 
 
-function setIndexHtmlContent(config: Config, ctx: CompilerCtx, indexHtml: string) {
+async function setIndexHtmlContent(config: Config, compilerCtx: CompilerCtx, indexHtml: string) {
   const swConfig = config.serviceWorker as ServiceWorkerConfig;
 
   if (!swConfig && config.devMode) {
@@ -51,11 +51,11 @@ function setIndexHtmlContent(config: Config, ctx: CompilerCtx, indexHtml: string
 
   } else if (swConfig) {
     // we have a valid sw config, so we'll need to inject the register sw script
-    indexHtml = injectRegisterServiceWorker(config, swConfig, indexHtml);
+    indexHtml = await injectRegisterServiceWorker(config, compilerCtx, swConfig, indexHtml);
   }
 
   // add the prerendered html to our list of files to write
-  ctx.fs.writeFile(config.wwwIndexHtml, indexHtml);
+  compilerCtx.fs.writeFile(config.wwwIndexHtml, indexHtml);
 
   config.logger.debug(`optimizeHtml, write: ${config.wwwIndexHtml}`);
 }

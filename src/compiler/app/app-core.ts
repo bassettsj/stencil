@@ -10,7 +10,7 @@ export async function generateCore(config: Config, compilerCtx: CompilerCtx, bui
   // process the transpiled code by removing unused code and minify when configured to do so
   let jsContent = await config.sys.getClientCoreFile({ staticName: 'core.build.js' });
 
-  jsContent = buildCoreContent(config, compilerCtx, buildCtx, buildConditionals, jsContent);
+  jsContent = await buildCoreContent(config, compilerCtx, buildCtx, buildConditionals, jsContent);
 
   if (globalJsContent) {
     // we've got global js to put in the core build too

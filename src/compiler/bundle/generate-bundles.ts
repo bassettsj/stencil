@@ -32,9 +32,9 @@ function generateBundle(config: Config, comilerCtx: CompilerCtx, buildCtx: Build
 }
 
 
-function generateBundleMode(config: Config, comilerCtx: CompilerCtx, buildCtx: BuildCtx, bundle: Bundle, modeName: string) {
+async function generateBundleMode(config: Config, comilerCtx: CompilerCtx, buildCtx: BuildCtx, bundle: Bundle, modeName: string) {
   // create js text for: mode, no scoped styles and esm
-  let jsText = createBundleJsText(config, buildCtx, bundle, modeName, false);
+  let jsText = await createBundleJsText(config, comilerCtx, buildCtx, bundle, modeName, false);
 
   // the only bundle id comes from mode, no scoped styles and esm
   const bundleId = getBundleId(config, bundle, modeName, jsText);
@@ -48,7 +48,7 @@ function generateBundleMode(config: Config, comilerCtx: CompilerCtx, buildCtx: B
 
   if (bundle.requiresScopedStyles) {
     // create js text for: mode, scoped styles, esm
-    jsText = createBundleJsText(config, buildCtx, bundle, modeName, true);
+    jsText = await createBundleJsText(config, comilerCtx, buildCtx, bundle, modeName, true);
 
     // generate the bundle build for: mode, esm and scoped styles
     generateBundleBuild(config, comilerCtx, jsText, bundleId, true);
@@ -56,14 +56,14 @@ function generateBundleMode(config: Config, comilerCtx: CompilerCtx, buildCtx: B
 
   if (config.buildEs5) {
     // create js text for: mode, no scoped styles, es5
-    jsText = createBundleJsText(config, buildCtx, bundle, modeName, false, 'es5');
+    jsText = await createBundleJsText(config, comilerCtx, buildCtx, bundle, modeName, false, 'es5');
 
     // generate the bundle build for: mode, no scoped styles and es5
     generateBundleBuild(config, comilerCtx, jsText, bundleId, false, 'es5');
 
     if (bundle.requiresScopedStyles) {
       // create js text for: mode, scoped styles, es5
-      jsText = createBundleJsText(config, buildCtx, bundle, modeName, true, 'es5');
+      jsText = await createBundleJsText(config, comilerCtx, buildCtx, bundle, modeName, true, 'es5');
 
       // generate the bundle build for: mode, es5 and scoped styles
       generateBundleBuild(config, comilerCtx, jsText, bundleId, true, 'es5');
@@ -72,13 +72,23 @@ function generateBundleMode(config: Config, comilerCtx: CompilerCtx, buildCtx: B
 }
 
 
-function createBundleJsText(config: Config, buildCtx: BuildCtx, bundle: Bundle, modeName: string, isScopedStyles: boolean, sourceTarget?: SourceTarget) {
+async function createBundleJsText(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, bundle: Bundle, modeName: string, isScopedStyles: boolean, sourceTarget?: SourceTarget) {
   // get the already bundled js module text
-  let jsText = getBundleJsText(buildCtx, bundle, sourceTarget);
+  let jsText = await getBundleJsText(compilerCtx, buildCtx, bundle, sourceTarget);
 
   if (config.minifyJs) {
     // minify the bundle js text
-    jsText = minifyBundleJs(config, buildCtx, jsText, sourceTarget);
+    const minifyJsResults = await minifyJs(config, compilerCtx, jsText, sourceTarget, true);
+    if (minifyJsResults.diagnostics.length) {
+      minifyJsResults.diagnostics.forEach(d => {
+        buildCtx.diagnostics.push(d);
+      });
+
+    } else {
+      jsText = minifyJsResults.output;
+    }
+
+    return jsText;
   }
 
   return injectStyleMode(bundle.moduleFiles, jsText, modeName, isScopedStyles);
@@ -168,11 +178,11 @@ export function injectComponentStyleMode(cmpMeta: ComponentMeta, modeName: strin
 }
 
 
-function getBundleJsText(buildCtx: BuildCtx, bundle: Bundle, sourceTarget?: SourceTarget) {
+async function getBundleJsText(compilerCtx: CompilerCtx, buildCtx: BuildCtx, bundle: Bundle, sourceTarget?: SourceTarget) {
   if (sourceTarget === 'es5') {
     // use legacy bundling with commonjs/jsonp modules
     // and transpile the build to es5
-    return transileEs5Bundle(buildCtx, bundle.compiledModuleLegacyJsText);
+    return transileEs5Bundle(compilerCtx, buildCtx, bundle.compiledModuleLegacyJsText);
   }
 
   // already have es modules with es6 target
@@ -180,9 +190,9 @@ function getBundleJsText(buildCtx: BuildCtx, bundle: Bundle, sourceTarget?: Sour
 }
 
 
-function transileEs5Bundle(buildCtx: BuildCtx, jsText: string) {
+async function transileEs5Bundle(compilerCtx: CompilerCtx, buildCtx: BuildCtx, jsText: string) {
   // use typescript to convert this js text into es5
-  const transpileResults = transpileToEs5(jsText);
+  const transpileResults = await transpileToEs5(compilerCtx, jsText);
   if (transpileResults.diagnostics && transpileResults.diagnostics.length > 0) {
     buildCtx.diagnostics.push(...transpileResults.diagnostics);
   }
@@ -190,19 +200,6 @@ function transileEs5Bundle(buildCtx: BuildCtx, jsText: string) {
     return jsText;
   }
   return transpileResults.code;
-}
-
-function minifyBundleJs(config: Config, buildCtx: BuildCtx, jsText: string, sourceTarget?: SourceTarget): string {
-  const minifyJsResults = minifyJs(config, jsText, sourceTarget, true);
-  if (minifyJsResults.diagnostics.length) {
-    minifyJsResults.diagnostics.forEach(d => {
-      buildCtx.diagnostics.push(d);
-    });
-
-  } else {
-    jsText = minifyJsResults.output;
-  }
-  return jsText;
 }
 
 

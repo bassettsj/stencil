@@ -7,7 +7,7 @@ import { formatComponentLoaderRegistry } from '../../util/data-serialize';
 
 export async function generateLoader(
   config: Config,
-  ctx: CompilerCtx,
+  compilerCtx: CompilerCtx,
   appRegistry: AppRegistry,
   cmpRegistry: ComponentRegistry
 ) {
@@ -28,51 +28,43 @@ export async function generateLoader(
   );
 
   // write the app loader file
-  if (ctx.appFiles.loaderContent !== loaderContent) {
+  if (compilerCtx.appFiles.loaderContent !== loaderContent) {
     // app loader file is actually different from our last saved version
     config.logger.debug(`build, app loader: ${appLoaderFileName}`);
-    ctx.appFiles.loaderContent = loaderContent;
+    compilerCtx.appFiles.loaderContent = loaderContent;
 
     if (config.minifyJs) {
-      // minify
-      loaderContent = minifyLoader(config, loaderContent);
+      // minify the loader
+      const minifyJsResults = await minifyJs(config, compilerCtx, loaderContent, 'es5', true);
+      minifyJsResults.diagnostics.forEach(d => {
+        (config.logger as any)[d.level](d.messageText);
+      });
+
+      if (!minifyJsResults.diagnostics.length) {
+        loaderContent = minifyJsResults.output;
+      }
 
     } else {
       // dev
       loaderContent = generatePreamble(config) + '\n' + loaderContent;
     }
 
-    ctx.appFiles.loader = loaderContent;
+    compilerCtx.appFiles.loader = loaderContent;
 
     if (config.generateWWW) {
       const appLoaderWWW = getLoaderWWW(config);
-      await ctx.fs.writeFile(appLoaderWWW, loaderContent);
-      ctx.appFiles[appLoaderWWW] = loaderContent;
+      await compilerCtx.fs.writeFile(appLoaderWWW, loaderContent);
+      compilerCtx.appFiles[appLoaderWWW] = loaderContent;
     }
 
     if (config.generateDistribution) {
       const appLoaderDist = getLoaderDist(config);
-      await ctx.fs.writeFile(appLoaderDist, loaderContent);
-      ctx.appFiles[appLoaderDist] = loaderContent;
+      await compilerCtx.fs.writeFile(appLoaderDist, loaderContent);
+      compilerCtx.appFiles[appLoaderDist] = loaderContent;
     }
   }
 
   return loaderContent;
-}
-
-
-function minifyLoader(config: Config, jsText: string) {
-  // minify the loader
-  const minifyJsResults = minifyJs(config, jsText, 'es5', true);
-  minifyJsResults.diagnostics.forEach(d => {
-    (config.logger as any)[d.level](d.messageText);
-  });
-
-  if (!minifyJsResults.diagnostics.length) {
-    jsText = minifyJsResults.output;
-  }
-
-  return jsText;
 }
 
 

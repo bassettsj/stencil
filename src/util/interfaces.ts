@@ -494,7 +494,6 @@ export interface CompilerCtx {
     [key: string]: string;
   };
   appCoreWWWPath?: string;
-  coreBuilds?: {[cacheKey: string]: string};
 
   lastBuildHadError?: boolean;
   localPrerenderServer?: any;

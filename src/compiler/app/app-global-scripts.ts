@@ -1,7 +1,7 @@
 import { AppRegistry, BuildCtx, Config, CompilerCtx, SourceTarget } from '../../util/interfaces';
 import { buildExpressionReplacer } from '../build/replacer';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
-import { generatePreamble, hasError } from '../util';
+import { generatePreamble, minifyJs } from '../util';
 import { getAppPublicPath, getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
 import { transpileToEs5 } from '../transpile/core-build';
 import transpiledInMemoryPlugin from '../bundle/rollup-plugins/transpiled-in-memory';
@@ -36,26 +36,24 @@ export async function generateAppGlobalScript(config: Config, compilerCtx: Compi
 }
 
 
-export function generateAppGlobalContents(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, sourceTarget: SourceTarget) {
+export async function generateAppGlobalContents(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, sourceTarget: SourceTarget) {
   let globalJsContents: string[] = [];
 
-  return Promise.all([
+  const results = await Promise.all([
     loadDependentGlobalJsContents(config, compilerCtx, buildCtx, sourceTarget),
     bundleProjectGlobal(config, compilerCtx, buildCtx, sourceTarget, config.namespace, config.globalScript)
+  ]);
 
-  ]).then(results => {
-    const dependentGlobalJsContents = results[0];
-    const projectGlobalJsContent = results[1];
+  const dependentGlobalJsContents = results[0];
+  const projectGlobalJsContent = results[1];
 
-    globalJsContents = globalJsContents.concat(dependentGlobalJsContents);
+  globalJsContents = globalJsContents.concat(dependentGlobalJsContents);
 
-    if (projectGlobalJsContent) {
-      globalJsContents.push(projectGlobalJsContent);
-    }
+  if (projectGlobalJsContent) {
+    globalJsContents.push(projectGlobalJsContent);
+  }
 
-  }).then(() => {
-    return globalJsContents;
-  });
+  return globalJsContents;
 }
 
 
@@ -73,7 +71,7 @@ function loadDependentGlobalJsContents(config: Config, compilerCtx: CompilerCtx,
 }
 
 
-function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, sourceTarget: SourceTarget, namespace: string, entry: string): Promise<string> {
+async function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, sourceTarget: SourceTarget, namespace: string, entry: string): Promise<string> {
   // stencil by itself does not have a global file
   // however, other collections can provide a global js
   // which will bundle whatever is in the global, and then
@@ -82,61 +80,53 @@ function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, buildCtx:
 
   if (!entry) {
     // looks like they never provided an entry file, which is fine, so let's skip this
-    return Promise.resolve(null);
+    return null;
   }
 
   // ok, so the project also provided an entry file, so let's bundle it up and
   // the output from this can be tacked onto the top of the project's core file
   // start the bundler on our temporary file
-  return config.sys.rollup.rollup({
-    input: entry,
-    plugins: [
-      config.sys.rollup.plugins.nodeResolve({
-        jsnext: true,
-        main: true
-      }),
-      config.sys.rollup.plugins.commonjs({
-        include: 'node_modules/**',
-        sourceMap: false
-      }),
-      transpiledInMemoryPlugin(config, compilerCtx)
-    ],
-    onwarn: createOnWarnFn(buildCtx.diagnostics)
+  let output = '';
 
-  }).catch(err => {
-    loadRollupDiagnostics(config, compilerCtx, buildCtx, err);
-  })
-
-  .then(rollupBundle => {
-    // generate the bundler results
-    if (hasError(buildCtx.diagnostics) || !rollupBundle) {
-      return '';
-    }
-
-    return rollupBundle.generate({
-      format: 'es'
-
-    }).then(results => {
-      // cool, so we balled up all of the globals into one string
-
-      // replace build time expressions, like process.env.NODE_ENV === 'production'
-      // with a hard coded boolean
-      results.code = buildExpressionReplacer(config, results.code);
-
-      // wrap our globals code with our own iife
-      return wrapGlobalJs(config, buildCtx, sourceTarget, namespace, results.code);
+  try {
+    const rollup = await config.sys.rollup.rollup({
+      input: entry,
+      plugins: [
+        config.sys.rollup.plugins.nodeResolve({
+          jsnext: true,
+          main: true
+        }),
+        config.sys.rollup.plugins.commonjs({
+          include: 'node_modules/**',
+          sourceMap: false
+        }),
+        transpiledInMemoryPlugin(config, compilerCtx)
+      ],
+      onwarn: createOnWarnFn(buildCtx.diagnostics)
     });
 
-  }).then(output => {
+    const results = await rollup.generate({format: 'es'});
+
+    // cool, so we balled up all of the globals into one string
+
+    // replace build time expressions, like process.env.NODE_ENV === 'production'
+    // with a hard coded boolean
+    results.code = buildExpressionReplacer(config, results.code);
+
+    // wrap our globals code with our own iife
+    output = await wrapGlobalJs(config, compilerCtx, buildCtx, sourceTarget, namespace, results.code);
 
     buildCtx.manifest.global = compilerCtx.moduleFiles[config.globalScript];
 
-    return output;
-  });
+  } catch (e) {
+    loadRollupDiagnostics(config, compilerCtx, buildCtx, e);
+  }
+
+  return output;
 }
 
 
-function wrapGlobalJs(config: Config, buildCtx: BuildCtx, sourceTarget: SourceTarget, globalJsName: string, jsContent: string) {
+async function wrapGlobalJs(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, sourceTarget: SourceTarget, globalJsName: string, jsContent: string) {
   jsContent = (jsContent || '').trim();
 
   // just format it a touch better in dev mode
@@ -154,7 +144,7 @@ function wrapGlobalJs(config: Config, buildCtx: BuildCtx, sourceTarget: SourceTa
     // global could already be in es2015
     // transpile it down to es5
     config.logger.debug(`transpile global to es5: ${globalJsName}`);
-    const transpileResults = transpileToEs5(jsContent);
+    const transpileResults = await transpileToEs5(compilerCtx, jsContent);
     if (transpileResults.diagnostics && transpileResults.diagnostics.length) {
       buildCtx.diagnostics.push(...transpileResults.diagnostics);
     } else {
@@ -163,28 +153,7 @@ function wrapGlobalJs(config: Config, buildCtx: BuildCtx, sourceTarget: SourceTa
   }
 
   if (config.minifyJs) {
-    const opts: any = { output: {}, compress: {}, mangle: {} };
-
-    if (sourceTarget === 'es5') {
-      // minify in a cool es5 way
-      opts.ecma = 5;
-      opts.output.ecma = 5;
-      opts.compress.ecma = 5;
-      opts.compress.arrows = false;
-    }
-
-    if (config.logLevel === 'debug') {
-      opts.mangle.keep_fnames = true;
-      opts.compress.drop_console = false;
-      opts.compress.drop_debugger = false;
-      opts.output.beautify = true;
-      opts.output.bracketize = true;
-      opts.output.indent_level = 2;
-      opts.output.comments = 'all';
-      opts.output.preserve_line = true;
-    }
-
-    const minifyResults = config.sys.minifyJs(jsContent, opts);
+    const minifyResults = await minifyJs(config, compilerCtx, jsContent, sourceTarget, false);
     if (minifyResults.diagnostics && minifyResults.diagnostics.length) {
       buildCtx.diagnostics.push(...minifyResults.diagnostics);
     } else {

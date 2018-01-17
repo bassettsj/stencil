@@ -1,8 +1,8 @@
-import { Config, ServiceWorkerConfig } from '../../util/interfaces';
+import { Config, ServiceWorkerConfig, CompilerCtx } from '../../util/interfaces';
 import { minifyJs } from '../util';
 
 
-export function injectRegisterServiceWorker(config: Config, swConfig: ServiceWorkerConfig, indexHtml: string) {
+export async function injectRegisterServiceWorker(config: Config, compilerCtx: CompilerCtx, swConfig: ServiceWorkerConfig, indexHtml: string) {
   const match = indexHtml.match(BODY_CLOSE_REG);
 
   let swUrl = config.sys.path.relative(config.wwwDir, swConfig.swDest);
@@ -12,7 +12,7 @@ export function injectRegisterServiceWorker(config: Config, swConfig: ServiceWor
   if (match) {
     let serviceWorker = getRegisterSwScript(swUrl);
     if (config.minifyJs) {
-      const minifyResults = minifyJs(config, serviceWorker, 'es5', false);
+      const minifyResults = await minifyJs(config, compilerCtx, serviceWorker, 'es5', false);
       minifyResults.diagnostics.forEach(d => {
         (config.logger as any)[d.level](d.messageText);
       });

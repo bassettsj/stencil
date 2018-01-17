@@ -12,7 +12,6 @@ export function getCompilerCtx(config: Config, compilerCtx?: CompilerCtx) {
   compilerCtx.cache = compilerCtx.cache || new Cache(config, new InMemoryFileSystem(config.sys.fs, config.sys.path), config.sys.tmpdir());
   compilerCtx.events = compilerCtx.events || new BuildEvents(config);
   compilerCtx.appFiles = compilerCtx.appFiles || {};
-  compilerCtx.coreBuilds = compilerCtx.coreBuilds || {};
   compilerCtx.moduleFiles = compilerCtx.moduleFiles || {};
   compilerCtx.rollupCache = compilerCtx.rollupCache || {};
   compilerCtx.dependentManifests = compilerCtx.dependentManifests || {};
@@ -100,20 +99,23 @@ export function isWebDevFile(filePath: string) {
 const WEB_DEV_EXT = ['js', 'jsx', 'html', 'htm', 'css', 'scss', 'sass'];
 
 
-export function minifyJs(config: Config, jsText: string, sourceTarget: SourceTarget, preamble: boolean) {
+export async function minifyJs(config: Config, compilerCtx: CompilerCtx, jsText: string, sourceTarget: SourceTarget, preamble: boolean) {
   const opts: any = { output: {}, compress: {}, mangle: {} };
+  let cacheKey = 'MinifyJs';
 
   if (sourceTarget === 'es5') {
     opts.ecma = 5;
     opts.output.ecma = 5;
     opts.compress.ecma = 5;
     opts.compress.arrows = false;
+    cacheKey += '_5';
 
   } else {
     opts.ecma = 6;
     opts.output.ecma = 6;
     opts.compress.ecma = 6;
     opts.compress.arrows = true;
+    cacheKey += '_6';
   }
 
   if (config.logLevel === 'debug') {
@@ -125,11 +127,28 @@ export function minifyJs(config: Config, jsText: string, sourceTarget: SourceTar
     opts.output.indent_level = 2;
     opts.output.comments = 'all';
     opts.output.preserve_line = true;
+    cacheKey += '_d';
   }
+
   if (preamble) {
     opts.output.preamble = generatePreamble(config);
+    cacheKey += '_p';
   }
-  return config.sys.minifyJs(jsText, opts);
+
+  cacheKey = compilerCtx.cache.createKey(cacheKey, jsText);
+  let cachedContent = await compilerCtx.cache.get(cacheKey);
+  if (cachedContent != null) {
+    return {
+      output: cachedContent,
+      diagnostics: []
+    };
+  }
+
+  const r = config.sys.minifyJs(jsText, opts);
+  if (r && r.diagnostics.length === 0 && typeof r.output === 'string') {
+    await compilerCtx.cache.put(cacheKey, r.output);
+  }
+  return r;
 }
 
 export function generatePreamble(config: Config) {

@@ -30,6 +30,7 @@ async function setBuildFromComponent(config: Config, ctx: CompilerCtx, coreBuild
     try {
       const jsText = await ctx.fs.readFile(moduleFile.jsFilePath);
       setBuildFromComponentContent(coreBuild, jsText);
+
     } catch (e) {
       config.logger.debug(`setBuildFromComponent: ${moduleFile.jsFilePath}: ${e}`);
     }

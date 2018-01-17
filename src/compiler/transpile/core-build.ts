@@ -1,15 +1,32 @@
-import { BuildConditionals, Diagnostic, TranspileResults } from '../../util/interfaces';
+import { BuildConditionals, Diagnostic, TranspileResults, CompilerCtx, Config } from '../../util/interfaces';
 import { buildConditionalsTransform } from './transformers/build-conditionals';
 import { loadTypeScriptDiagnostics } from '../../util/logger/logger-typescript';
 import * as ts from 'typescript';
 
 
-export function transpileCoreBuild(coreBuild: BuildConditionals, input: string) {
-  const diagnostics: Diagnostic[] = [];
+export async function transpileCoreBuild(config: Config, compilerCtx: CompilerCtx, coreBuild: BuildConditionals, input: string) {
   const results: TranspileResults = {
     code: null,
     diagnostics: null
   };
+
+  let cacheKey = 'Core';
+  Object.keys(coreBuild).forEach((key, i) => {
+    if ((coreBuild as any)[key]) {
+      cacheKey += '_' + key + '_' + i;
+    }
+  });
+  cacheKey = 'Core_' + config.sys.generateContentHash(cacheKey, 12);
+
+  cacheKey = compilerCtx.cache.createKey(cacheKey, input);
+  const cachedContent = await compilerCtx.cache.get(cacheKey);
+  if (cachedContent != null) {
+    results.code = cachedContent;
+    results.diagnostics = [];
+    return results;
+  }
+
+  const diagnostics: Diagnostic[] = [];
 
   const transpileOpts: ts.TranspileOptions = {
     compilerOptions: getCompilerOptions(coreBuild),
@@ -32,16 +49,26 @@ export function transpileCoreBuild(coreBuild: BuildConditionals, input: string) 
 
   results.code = tsResults.outputText;
 
+  await compilerCtx.cache.put(cacheKey, results.code);
+
   return results;
 }
 
 
-export function transpileToEs5(input: string) {
+export async function transpileToEs5(compilerCtx: CompilerCtx, input: string) {
   const diagnostics: Diagnostic[] = [];
   const results: TranspileResults = {
     code: null,
     diagnostics: null
   };
+
+  const cacheKey = compilerCtx.cache.createKey('TranspileToEs5', input);
+  const cachedContent = await compilerCtx.cache.get(cacheKey);
+  if (cachedContent != null) {
+    results.code = cachedContent;
+    results.diagnostics = [];
+    return results;
+  }
 
   const transpileOpts: ts.TranspileOptions = {
     compilerOptions: {
@@ -62,6 +89,7 @@ export function transpileToEs5(input: string) {
   }
 
   results.code = tsResults.outputText;
+  await compilerCtx.cache.put(cacheKey, results.code);
 
   return results;
 }
