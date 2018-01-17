@@ -6,10 +6,21 @@ export class Cache {
   private failedGets = 0;
 
   constructor(private config: Config, private cacheFs: InMemoryFileSystem, private tmpDir: string) {
-    config.logger.debug(`cache tmpdir: ${tmpDir}`);
+    if (config.enableCache) {
+      config.logger.debug(`cache enabled, tmpdir: ${tmpDir}`);
+
+    } else {
+      config.logger.debug(`cache disabled, empty tmpdir: ${tmpDir}`);
+      cacheFs.emptyDir(tmpDir);
+      cacheFs.commit();
+    }
   }
 
   async get(key: string) {
+    if (!this.config.enableCache) {
+      return null;
+    }
+
     if (this.failedGets >= MAX_FAILED_GETS) {
       if (this.failedGets === MAX_FAILED_GETS) {
         this.config.logger.debug(`cache had ${this.failedGets} failed gets, skip cache disk reads for remander of build`);
@@ -31,6 +42,10 @@ export class Cache {
   }
 
   async put(key: string, value: string) {
+    if (!this.config.enableCache) {
+      return false;
+    }
+
     let result: boolean;
 
     try {
@@ -44,12 +59,21 @@ export class Cache {
   }
 
   createKey(domain: string, content: string) {
+    if (!this.config.enableCache) {
+      return '';
+    }
     return domain + '_' + this.config.sys.generateContentHash(content, 32);
   }
 
-  commit() {
-    this.failedGets = 0;
-    return this.cacheFs.commit();
+  async commit() {
+    if (this.config.enableCache) {
+      this.failedGets = 0;
+      await this.cacheFs.commit();
+    }
+  }
+
+  clear() {
+    this.cacheFs.clearCache();
   }
 
   private getCacheFilePath(key: string) {

@@ -1,16 +1,15 @@
 import { FileSystem } from '../../util/interfaces';
+import * as fs from 'fs';
 
 
-export class NodeFileSystem implements FileSystem {
-
-  constructor(private fs: any) {}
+export class NodeFs implements FileSystem {
 
   copyFile(src: string, dest: string) {
     return new Promise<void>((resolve, reject) => {
-      const rd = this.fs.createReadStream(src);
+      const rd = fs.createReadStream(src);
       rd.on('error', reject);
 
-      const wr = this.fs.createWriteStream(dest);
+      const wr = fs.createWriteStream(dest);
       wr.on('error', reject);
       wr.on('close', resolve);
 
@@ -20,7 +19,7 @@ export class NodeFileSystem implements FileSystem {
 
   mkdir(filePath: string) {
     return new Promise<void>((resolve, reject) => {
-      this.fs.mkdir(filePath, (err: any) => {
+      fs.mkdir(filePath, (err: any) => {
         if (err) {
           reject(err);
         } else {
@@ -32,7 +31,7 @@ export class NodeFileSystem implements FileSystem {
 
   readdir(dirPath: string) {
     return new Promise<string[]>((resolve, reject) => {
-      this.fs.readdir(dirPath, (err: any, files: any) => {
+      fs.readdir(dirPath, (err: any, files: any) => {
         if (err) {
           reject(err);
         } else {
@@ -44,7 +43,7 @@ export class NodeFileSystem implements FileSystem {
 
   readFile(filePath: string) {
     return new Promise<string>((resolve, reject) => {
-      this.fs.readFile(filePath, 'utf-8', (err: any, content: any) => {
+      fs.readFile(filePath, 'utf-8', (err: any, content: any) => {
         if (err) {
           reject(err);
         } else {
@@ -55,12 +54,12 @@ export class NodeFileSystem implements FileSystem {
   }
 
   readFileSync(filePath: string) {
-    return this.fs.readFileSync(filePath, 'utf-8');
+    return fs.readFileSync(filePath, 'utf-8');
   }
 
   rmdir(filePath: string) {
     return new Promise<void>((resolve, reject) => {
-      this.fs.rmdir(filePath, (err: any) => {
+      fs.rmdir(filePath, (err: any) => {
         if (err) {
           reject(err);
         } else {
@@ -72,7 +71,7 @@ export class NodeFileSystem implements FileSystem {
 
   stat(itemPath: string) {
     return new Promise<any>((resolve, reject) => {
-      this.fs.stat(itemPath, (err: any, stats: any) => {
+      fs.stat(itemPath, (err: any, stats: any) => {
         if (err) {
           reject(err);
         } else {
@@ -83,12 +82,12 @@ export class NodeFileSystem implements FileSystem {
   }
 
   statSync(itemPath: string) {
-    return this.fs.statSync(itemPath);
+    return fs.statSync(itemPath);
   }
 
   unlink(filePath: string) {
     return new Promise<void>((resolve, reject) => {
-      this.fs.unlink(filePath, (err: any) => {
+      fs.unlink(filePath, (err: any) => {
         if (err) {
           reject(err);
         } else {
@@ -100,7 +99,7 @@ export class NodeFileSystem implements FileSystem {
 
   writeFile(filePath: string, content: string) {
     return new Promise<void>((resolve, reject) => {
-      this.fs.writeFile(filePath, content, { encoding: 'utf-8' }, (err: any) => {
+      fs.writeFile(filePath, content, { encoding: 'utf-8' }, (err: any) => {
         if (err) {
           reject(err);
         } else {
@@ -111,7 +110,7 @@ export class NodeFileSystem implements FileSystem {
   }
 
   writeFileSync(filePath: string, content: string) {
-    return this.fs.writeFileSync(filePath, content, { encoding: 'utf-8' });
+    return fs.writeFileSync(filePath, content, { encoding: 'utf-8' });
   }
 
 }

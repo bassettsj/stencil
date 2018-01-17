@@ -1,7 +1,7 @@
 import { AppRegistry, Config, CompilerCtx, ComponentRegistry, LoadComponentRegistry } from '../../../util/interfaces';
 import { generateLoader, injectAppIntoLoader } from '../app-loader';
 import { generatePreamble } from '../../util';
-import { mockLogger, mockStencilSystem } from '../../../testing/mocks';
+import { mockCache, mockLogger, mockStencilSystem } from '../../../testing/mocks';
 
 
 describe('build-project-files', () => {
@@ -85,7 +85,7 @@ describe('build-project-files', () => {
     config.fsNamespace = config.namespace.toLowerCase();
     config.publicPath = 'build/';
 
-    let ctx: CompilerCtx = { appFiles: {} };
+    let ctx: CompilerCtx = { appFiles: {}, cache: mockCache() as any };
 
     let appRegistry: AppRegistry = {
       core: 'myapp.core.js',

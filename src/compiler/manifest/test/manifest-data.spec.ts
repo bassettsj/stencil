@@ -35,8 +35,6 @@ describe('manifest-data serialize/parse', () => {
     ]);
     expect(outManifest.components).toHaveLength(1);
     expect(outManifest.compiler.name).toEqual('test');
-    expect(outManifest.compiler.version).toEqual('test');
-    expect(outManifest.compiler.typescriptVersion).toEqual('test');
   });
 
   it('serializeAppGlobal', () => {

@@ -112,6 +112,7 @@ export class InMemoryFileSystem {
     this.d[dirPath].isFile = false;
     this.d[dirPath].isDirectory = true;
     this.d[dirPath].queueWriteToDisk = true;
+    this.d[dirPath].queueDeleteFromDisk = false;
   }
 
   async readdir(dirPath: string, opts: FsReaddirOptions = {}) {
@@ -370,8 +371,9 @@ export class InMemoryFileSystem {
 
     await this.commitEnsureDirs(dirsToEnsure);
 
-    await Promise.all(copyFileTasks.map(async copyFileTask => {
+    return await Promise.all(copyFileTasks.map(async copyFileTask => {
       await this.fs.copyFile(copyFileTask.src, copyFileTask.dest);
+      return copyFileTask.dest;
     }));
   }
 
@@ -454,7 +456,9 @@ export class InMemoryFileSystem {
 
     for (let i = 0; i < dirsToDelete.length; i++) {
       const dirPath = dirsToDelete[i];
-      await this.fs.rmdir(dirPath);
+      try {
+        await this.fs.rmdir(dirPath);
+      } catch (e) {}
       dirsDeleted.push(dirPath);
     }
 

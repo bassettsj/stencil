@@ -2,13 +2,26 @@ import { BuildEvents } from '../../compiler/events';
 import { Config, Diagnostic, FileSystem, Path, PackageJsonData, StencilSystem } from '../../util/interfaces';
 import { createContext, runInContext } from './node-context';
 import { createDom } from './node-dom';
-import { NodeFileSystem } from './node-fs';
+import { NodeFs } from './node-fs';
 import { normalizePath } from '../../compiler/util';
+
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as url from 'url';
+
+const Module = require('module');
+const rollup = require('rollup');
+rollup.plugins = {
+  commonjs: require('rollup-plugin-commonjs'),
+  nodeResolve: require('rollup-plugin-node-resolve')
+};
 
 
 export class NodeSystem implements StencilSystem {
   private packageJsonData: PackageJsonData;
-  private packageDistDir: string;
+  private distClientDir: string;
   private runtime: string;
   private sysUtil: any;
   private typescriptPackageJson: PackageJsonData;
@@ -17,28 +30,27 @@ export class NodeSystem implements StencilSystem {
   path: Path;
 
 
-  constructor() {
-    this.fs = new NodeFileSystem(require('fs'));
-    this.path = require('path');
-    this.sysUtil = require(this.path.join(__dirname, './sys-util.js'));
-    this.init();
-  }
+  constructor(fs?: FileSystem) {
+    this.fs = fs || new NodeFs();
+    this.path = path;
 
-  init() {
-    const packageRootDir = this.path.join(__dirname, '../../../');
-    this.packageDistDir = this.path.join(packageRootDir, 'dist/client');
-    this.runtime = this.path.join(packageRootDir, 'dist/compiler/index.js');
+    const rootDir = path.join(__dirname, '../../..');
+    const distDir = path.join(rootDir, 'dist');
+
+    this.sysUtil = require(path.join(distDir, 'sys/node/sys-util.js'));
+    this.distClientDir = path.join(distDir, 'client');
+    this.runtime = path.join(distDir, 'compiler/index.js');
 
     try {
-      this.packageJsonData = require(this.path.join(packageRootDir, 'package.json'));
+      this.packageJsonData = require(path.join(rootDir, 'package.json'));
     } catch (e) {
-      throw new Error(`unable to resolve "package.json" from: ${packageRootDir}`);
+      throw new Error(`unable to resolve "package.json" from: ${rootDir}`);
     }
 
     try {
-      this.typescriptPackageJson = require(this.resolveModule(packageRootDir, 'typescript')) as PackageJsonData;
+      this.typescriptPackageJson = require(this.resolveModule(rootDir, 'typescript')) as PackageJsonData;
     } catch (e) {
-      throw new Error(`unable to resolve "typescript" from: ${packageRootDir}`);
+      throw new Error(`unable to resolve "typescript" from: ${rootDir}`);
     }
   }
 
@@ -83,17 +95,16 @@ export class NodeSystem implements StencilSystem {
   }
 
   generateContentHash(content: string, length: number): string {
-    const crypto = require('crypto');
     return crypto.createHash('sha1')
-                  .update(content)
-                  .digest('base64')
-                  .replace(/\W/g, '')
-                  .substr(0, length)
-                  .toLowerCase();
+                     .update(content)
+                     .digest('base64')
+                     .replace(/\W/g, '')
+                     .substr(0, length)
+                     .toLowerCase();
   }
 
   getClientCoreFile(opts: any) {
-    const filePath = this.path.join(this.packageDistDir, opts.staticName);
+    const filePath = path.join(this.distClientDir, opts.staticName);
     return this.fs.readFile(filePath);
   }
 
@@ -116,7 +127,7 @@ export class NodeSystem implements StencilSystem {
   loadConfigFile(configPath: string) {
     let config: Config;
 
-    if (!this.path.isAbsolute(configPath)) {
+    if (!path.isAbsolute(configPath)) {
       throw new Error(`Stencil configuration file "${configPath}" must be an absolute path.`);
     }
 
@@ -125,7 +136,7 @@ export class NodeSystem implements StencilSystem {
       if (fileStat.isDirectory()) {
         // this is only a directory, so let's just assume we're looking for in stencil.config.js
         // otherwise they could pass in an absolute path if it was somewhere else
-        configPath = this.path.join(configPath, 'stencil.config.js');
+        configPath = path.join(configPath, 'stencil.config.js');
       }
 
       // the passed in config was a string, so it's probably a path to the config we need to load
@@ -138,7 +149,7 @@ export class NodeSystem implements StencilSystem {
       config.configPath = configPath;
 
       if (!config.rootDir && configPath) {
-        config.rootDir = this.path.dirname(configPath);
+        config.rootDir = path.dirname(configPath);
       }
 
     } catch (e) {
@@ -153,7 +164,7 @@ export class NodeSystem implements StencilSystem {
   }
 
   minifyCss(input: string) {
-    const CleanCSS = require(this.path.join(__dirname, './clean-css.js')).cleanCss;
+    const CleanCSS = require('./clean-css.js').cleanCss;
     const result = new CleanCSS().minify(input);
     const diagnostics: Diagnostic[] = [];
 
@@ -212,10 +223,8 @@ export class NodeSystem implements StencilSystem {
   }
 
   resolveModule(fromDir: string, moduleId: string) {
-    const Module = require('module');
-
-    fromDir = this.path.resolve(fromDir);
-    const fromFile = this.path.join(fromDir, 'noop.js');
+    fromDir = path.resolve(fromDir);
+    const fromFile = path.join(fromDir, 'noop.js');
 
     let dir = Module._resolveFilename(moduleId, {
       id: fromFile,
@@ -223,15 +232,15 @@ export class NodeSystem implements StencilSystem {
       paths: Module._nodeModulePaths(fromDir)
     });
 
-    const root = this.path.parse(fromDir).root;
+    const root = path.parse(fromDir).root;
     let packageJsonFilePath: any;
 
     while (dir !== root) {
-      dir = this.path.dirname(dir);
-      packageJsonFilePath = this.path.join(dir, 'package.json');
+      dir = path.dirname(dir);
+      packageJsonFilePath = path.join(dir, 'package.json');
 
       try {
-        this.fs.statSync(packageJsonFilePath);
+        fs.accessSync(packageJsonFilePath);
       } catch (e) {
         continue;
       }
@@ -243,11 +252,6 @@ export class NodeSystem implements StencilSystem {
   }
 
   get rollup() {
-    const rollup = require('rollup');
-    rollup.plugins = {
-      commonjs: require('rollup-plugin-commonjs'),
-      nodeResolve: require('rollup-plugin-node-resolve')
-    };
     return rollup;
   }
 
@@ -256,16 +260,11 @@ export class NodeSystem implements StencilSystem {
   }
 
   tmpdir() {
-    const os = require('os');
-    return this.path.join(os.tmpdir(), `stencil-${this.packageJsonData.version}`);
-  }
-
-  get typescript() {
-    return require('typescript');
+    return path.join(os.tmpdir(), `stencil-${this.packageJsonData.version}`);
   }
 
   get url() {
-    return require('url');
+    return url;
   }
 
   get vm(): any {

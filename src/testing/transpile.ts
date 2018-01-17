@@ -5,7 +5,6 @@ import { transpileModule } from '../compiler/transpile/transpile';
 const TEST_CONFIG: Config = {
   sys: {
     path: require('path'),
-    typescript: require('typescript'),
     url: require('url'),
     vm: require('vm')
   },

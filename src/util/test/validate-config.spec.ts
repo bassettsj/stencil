@@ -6,6 +6,27 @@ import * as path from 'path';
 
 describe('validation', () => {
 
+  describe('enableCache', () => {
+
+    it('set enableCache true', () => {
+      config.enableCache = true;
+      validateBuildConfig(config);
+      expect(config.enableCache).toBe(true);
+    });
+
+    it('set enableCache false', () => {
+      config.enableCache = false;
+      validateBuildConfig(config);
+      expect(config.enableCache).toBe(false);
+    });
+
+    it('default enableCache true', () => {
+      validateBuildConfig(config);
+      expect(config.enableCache).toBe(true);
+    });
+
+  });
+
   describe('buildStats', () => {
 
     it('set buildStats true', () => {

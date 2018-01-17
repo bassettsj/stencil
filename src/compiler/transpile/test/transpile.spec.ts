@@ -1,7 +1,4 @@
-import { DEFAULT_COMPILER_OPTIONS } from '../compiler-options';
-import { mockConfig } from '../../../testing/mocks';
 import { TestingCompiler } from '../../../testing';
-import { transpileModule } from '../transpile';
 import { wroteFile } from '../../../testing/utils';
 import * as path from 'path';
 import * as ts from 'typescript';
@@ -155,24 +152,11 @@ describe('transpile', () => {
 
     beforeEach(async () => {
       c = new TestingCompiler();
+
       await c.fs.writeFile('/src/index.html', `<cmp-a></cmp-a>`);
       await c.fs.commit();
     });
 
-  });
-
-  describe('simple', () => {
-
-    it('simple test', () => {
-      var config = mockConfig();
-      const filePath = path.join(__dirname, 'component.tsx');
-
-      DEFAULT_COMPILER_OPTIONS.target = ts.ScriptTarget.ES2015;
-      // DEFAULT_COMPILER_OPTIONS.module = ts.ModuleKind.CommonJS;
-      const results = transpileModule(config, DEFAULT_COMPILER_OPTIONS, filePath, ts.sys.readFile(filePath, 'utf8'));
-      expect(typeof results.code).toBe('string');
-      expect(Object.keys(results.cmpMeta).length).toEqual(10);
-    });
   });
 
 });

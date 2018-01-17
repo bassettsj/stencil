@@ -1,14 +1,16 @@
 import { ComponentMeta, ComponentRegistry, Config, DomApi, HostContentNodes, HostElement,
-  HydrateOptions, HydrateResults, Logger, PlatformApi, RendererApi, StencilSystem, VNode } from '../util/interfaces';
+  HydrateOptions, HydrateResults, PlatformApi, RendererApi, StencilSystem, VNode } from '../util/interfaces';
 import { ComponentInstance } from '../util/interfaces';
 import { createDomApi } from '../core/renderer/dom-api';
 import { createPlatformServer } from '../server/platform-server';
 import { createRendererPatch } from '../core/renderer/patch';
 import { initHostElement } from '../core/instance/init-host-element';
 import { initComponentInstance } from '../core/instance/init-component-instance';
-import { MockFileSystem } from './mock-fs';
-import { noop } from '../util/helpers';
 import { validateBuildConfig } from '../util/validate-config';
+import { TestingConfig } from './testing-config';
+import { TestingSystem } from './testing-sys';
+import { TestingFs } from './testing-fs';
+import { TestingLogger, TestingCache } from './index';
 
 
 export function mockPlatform(win?: any, domApi?: DomApi) {
@@ -71,170 +73,29 @@ export interface MockedPlatform extends PlatformApi {
 }
 
 
-export function mockConfig() {
-  var sys = mockStencilSystem();
-
-  const config: Config = {
-    sys: sys,
-    logger: mockLogger(),
-    rootDir: '/',
-    suppressTypeScriptErrors: true,
-    devMode: true,
-    buildStats: true
-  };
-
+export function mockConfig(): Config {
+  const config = new TestingConfig();
   return validateBuildConfig(config);
 }
 
 
-export function mockStencilSystem() {
-  const fs = mockFs();
-
-  const sys: StencilSystem = {
-
-    compiler: {
-      name: 'test',
-      version: 'test',
-      typescriptVersion: 'test'
-    },
-
-    createDom: mockCreateDom,
-
-    generateContentHash: function mockGenerateContentHash(content: string, length: number) {
-      var crypto = require('crypto');
-      return crypto.createHash('sha1')
-                  .update(content)
-                  .digest('base64')
-                  .replace(/\W/g, '')
-                  .substr(0, length)
-                  .toLowerCase();
-    },
-
-    getClientCoreFile: mockGetClientCoreFile,
-
-    isGlob: function(str) {
-      const isGlob = require('is-glob');
-      return isGlob(str);
-    },
-
-    fs: fs,
-
-    minifyCss: mockMinify,
-
-    minifyJs: mockMinify,
-
-    minimatch(filePath, pattern, opts) {
-      const minimatch = require('minimatch');
-      return minimatch(filePath, pattern, opts);
-    },
-
-    path: require('path'),
-
-    rollup: rollup,
-
-    semver: require('semver'),
-
-    tmpdir() {
-      const os = require('os');
-      return os.tmpdir();
-    },
-
-    typescript: require('typescript'),
-
-    url: require('url'),
-
-    vm: {
-      createContext: function(ctx, wwwDir, sandbox) {
-        ctx; wwwDir;
-        return require('vm').createContext(sandbox);
-      },
-      runInContext: function(code, contextifiedSandbox, options) {
-        require('vm').runInContext(code, contextifiedSandbox, options);
-      }
-    }
-  };
-
-  return sys;
+export function mockStencilSystem(): StencilSystem {
+  return new TestingSystem();
 }
-
-
-function mockGetClientCoreFile(opts: {staticName: string}) {
-  return Promise.resolve(`
-    (function (window, document, apptNamespace, appFileName, appCore, appCorePolyfilled, components) {
-        // mock getClientCoreFile, staticName: ${opts.staticName}
-    })(window, document, '__APP__');`);
-}
-
-
-function mockCreateDom() {
-  const jsdom = require('jsdom');
-  let dom: any;
-
-  return {
-    parse: function(opts: HydrateOptions) {
-      dom = new jsdom.JSDOM(opts.html, {
-        url: opts.path,
-        referrer: opts.referrer,
-        userAgent: opts.userAgent,
-      });
-      return dom.window;
-    },
-    serialize: function() {
-      return dom.serialize();
-    },
-    destroy: function() {
-      dom.window.close();
-      dom = null;
-    },
-    getDiagnostics: function(): any {
-      return [];
-    }
-  };
-}
-
-function mockMinify(input: string) {
-  return <any>{
-    output: `/** mock minify **/\n${input}`,
-    diagnostics: []
-  };
-}
-
-var rollup = require('rollup');
-rollup.plugins = {
-  commonjs: require('rollup-plugin-commonjs'),
-  nodeResolve: require('rollup-plugin-node-resolve')
-};
 
 
 export function mockFs() {
-  return new MockFileSystem();
+  return new TestingFs();
 }
 
 
 export function mockLogger() {
-  const logger: Logger = {
-    level: 'debug',
-    debug: noop,
-    info: noop,
-    error: noop,
-    warn: noop,
-    createTimeSpan: (_startMsg: string, _debug?: boolean) => {
-      return {
-        finish: () => {}
-      };
-    },
-    printDiagnostics: noop,
-    red: (msg) => msg,
-    green: (msg) => msg,
-    yellow: (msg) => msg,
-    blue: (msg) => msg,
-    magenta: (msg) => msg,
-    cyan: (msg) => msg,
-    gray: (msg) => msg,
-    bold: (msg) => msg,
-    dim: (msg) => msg
-  };
-  return logger;
+  return new TestingLogger();
+}
+
+
+export function mockCache() {
+  return new TestingCache();
 }
 
 

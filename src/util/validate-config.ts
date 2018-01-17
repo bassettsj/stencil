@@ -232,6 +232,10 @@ export function validateBuildConfig(config: Config, setEnvVariables?: boolean) {
     config.generateDocs = false;
   }
 
+  if (typeof config.enableCache !== 'boolean') {
+    config.enableCache = true;
+  }
+
   if (!Array.isArray(config.includeSrc)) {
     config.includeSrc = DEFAULT_INCLUDES.map(include => {
       return config.sys.path.join(config.srcDir, include);

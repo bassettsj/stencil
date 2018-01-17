@@ -349,6 +349,7 @@ export interface Config {
   generateDocs?: boolean;
   includeSrc?: string[];
   excludeSrc?: string[];
+  enableCache?: boolean;
   _isValidated?: boolean;
   _isTesting?: boolean;
 }
@@ -1199,7 +1200,6 @@ export interface StencilSystem {
     lte: (a: string, b: string, loose?: boolean) => boolean;
   };
   tmpdir?(): string;
-  typescript?: any;
   url?: {
     parse(urlStr: string, parseQueryString?: boolean, slashesDenoteHost?: boolean): Url;
     format(url: Url): string;

@@ -43,6 +43,10 @@ export class BuildEvents {
     }
   }
 
+  unsubscribeAll() {
+    this.evCallbacks = {};
+  }
+
 
   emit(eventName: CompilerEventName, ...args: any[]) {
     const evName = getEventName(eventName);

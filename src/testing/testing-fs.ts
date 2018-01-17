@@ -3,7 +3,7 @@ import { normalizePath } from '../compiler/util';
 import * as path from 'path';
 
 
-export class MockFileSystem implements FileSystem {
+export class TestingFs implements FileSystem {
   data: {[filePath: string]: { isFile: boolean; isDirectory: boolean; content?: string; } } = {};
 
   diskWrites = 0;
