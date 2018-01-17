@@ -83,6 +83,15 @@ async function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, bui
     return null;
   }
 
+  let cacheKey = `Global_${namespace}_${entry}`.replace(/\\|\//g, '_');
+  if (sourceTarget) {
+    cacheKey += '_5';
+  }
+  const cachedContent = await compilerCtx.cache.get(cacheKey);
+  if (cachedContent != null) {
+    return cachedContent;
+  }
+
   // ok, so the project also provided an entry file, so let's bundle it up and
   // the output from this can be tacked onto the top of the project's core file
   // start the bundler on our temporary file
@@ -105,7 +114,7 @@ async function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, bui
       onwarn: createOnWarnFn(buildCtx.diagnostics)
     });
 
-    const results = await rollup.generate({format: 'es'});
+    const results = await rollup.generate({ format: 'es' });
 
     // cool, so we balled up all of the globals into one string
 
@@ -115,6 +124,8 @@ async function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, bui
 
     // wrap our globals code with our own iife
     output = await wrapGlobalJs(config, compilerCtx, buildCtx, sourceTarget, namespace, results.code);
+
+    await compilerCtx.cache.put(cacheKey, output);
 
     buildCtx.manifest.global = compilerCtx.moduleFiles[config.globalScript];
 
