@@ -11,6 +11,7 @@ import { normalizeAssetsDir } from '../component-plugins/assets-plugin';
 import { normalizeStyles } from './normalize-styles';
 import { removeDecorators } from './transformers/remove-decorators';
 import { removeImports } from './transformers/remove-imports';
+import { removeStencil } from './transformers/remove-stencil';
 import * as ts from 'typescript';
 
 
@@ -110,7 +111,8 @@ function transpileProgram(program: ts.Program, tsHost: ts.CompilerHost, config: 
       addComponentMetadata(compilerCtx.moduleFiles)
     ],
     after: [
-      removeImports()
+      removeImports(),
+      removeStencil()
     ]
   });
 

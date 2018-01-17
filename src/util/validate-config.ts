@@ -233,7 +233,7 @@ export function validateBuildConfig(config: Config, setEnvVariables?: boolean) {
   }
 
   if (typeof config.enableCache !== 'boolean') {
-    config.enableCache = true;
+    config.enableCache = false;
   }
 
   if (!Array.isArray(config.includeSrc)) {
