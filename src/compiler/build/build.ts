@@ -1,7 +1,7 @@
 import { BuildResults, CompilerCtx, Config, WatcherResults } from '../../util/interfaces';
 import { bundleModules } from '../bundle/bundle';
 import { catchError, getCompilerCtx } from '../util';
-import { copyTasks } from './copy-tasks';
+import { copyTasks } from '../copy/copy-tasks';
 import { finishBuild, getBuildContext, shouldAbort } from './build-utils';
 import { generateAppFiles } from '../app/generate-app-files';
 import { generateAppManifest } from '../manifest/generate-manifest';

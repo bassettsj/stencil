@@ -1,5 +1,5 @@
 import { BuildCtx, Config, CompilerCtx, WatcherResults } from '../../util/interfaces';
-import { copyTasks, isCopyTaskFile } from '../build/copy-tasks';
+import { copyTasks, isCopyTaskFile } from '../copy/copy-tasks';
 import { isWebDevFile, normalizePath, isDtsFile } from '../util';
 import { rebuild, configFileReload } from './rebuild';
 import { COMPONENTS_DTS } from '../build/distribution';
