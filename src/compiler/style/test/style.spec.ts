@@ -47,6 +47,59 @@ describe('component-styles', () => {
       expect(content.includes('body { color: red; }')).toBe(true);
     });
 
+    it('should add mode styles to hashed filename/minified builds', async () => {
+      c.config.bundles = [ { components: ['cmp-a'] } ];
+      c.config.minifyJs = true;
+      c.config.minifyCss = true;
+      c.config.hashFileNames = true;
+      c.config.hashedFileNameLength = 1;
+      await c.fs.writeFiles({
+        '/src/cmp-a.tsx': `@Component({
+          tag: 'cmp-a',
+          styleUrls: {
+            ios: '/src/cmp-a.ios.css',
+            md: '/src/cmp-a.md.css'
+          }
+        })
+        export class CmpA {}`,
+
+        '/src/cmp-a.ios.css': `body{font:ios}`,
+
+        '/src/cmp-a.md.css': `body{font:md}`
+      });
+      await c.fs.commit();
+
+      const r = await c.build();
+      expect(r.diagnostics).toEqual([]);
+
+      const iosContent = await c.fs.readFile('/www/build/app/u.js');
+      expect(iosContent.includes(`body{font:ios}`)).toBe(true);
+      expect(iosContent.includes(`static get styleMode(){return"ios"}`)).toBe(true);
+
+      const mdContent = await c.fs.readFile('/www/build/app/w.js');
+      expect(mdContent.includes(`body{font:md}`)).toBe(true);
+      expect(mdContent.includes(`static get styleMode(){return"md"}`)).toBe(true);
+    });
+
+    it('should add default styles to hashed filename/minified builds', async () => {
+      c.config.bundles = [ { components: ['cmp-a'] } ];
+      c.config.minifyJs = true;
+      c.config.minifyCss = true;
+      c.config.hashFileNames = true;
+      c.config.hashedFileNameLength = 1;
+      await c.fs.writeFiles({
+        '/src/cmp-a.tsx': `@Component({ tag: 'cmp-a', styleUrl: 'cmp-a.scss' }) export class CmpA {}`,
+        '/src/cmp-a.scss': `body{color:red}`
+      });
+      await c.fs.commit();
+
+      const r = await c.build();
+      expect(r.diagnostics).toEqual([]);
+
+      const content = await c.fs.readFile('/www/build/app/y.js');
+      expect(content.includes(`body{color:red}`)).toBe(true);
+    });
+
     it('should minify styleUrl', async () => {
       c.config.bundles = [ { components: ['cmp-a'] } ];
       c.config.minifyCss = true;
@@ -62,7 +115,6 @@ describe('component-styles', () => {
       const content = await c.fs.readFile('/www/build/app/cmp-a.js');
       expect(content.includes(`body{color:red}`)).toBe(true);
     });
-
 
     it('should build one component w/ styleUrl', async () => {
       c.config.bundles = [ { components: ['cmp-a'] } ];

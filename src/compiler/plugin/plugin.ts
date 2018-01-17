@@ -1,4 +1,3 @@
-import { BasePlugin } from './base-plugin';
 import { BuildCtx, CompilerCtx, Config } from '../../util/interfaces';
 import { catchError } from '../util';
 import { PluginTransformResults, PluginCtx } from './plugin-interfaces';
@@ -14,9 +13,6 @@ export function initPlugins(config: Config) {
 
   const styleMinifyPlugin = new StyleMinifyPlugin();
   config.plugins.push(styleMinifyPlugin);
-
-  const basePlugin = new BasePlugin();
-  config.plugins.push(basePlugin);
 }
 
 
@@ -47,7 +43,8 @@ export async function runPluginResolveId(pluginCtx: PluginCtx, importee: string)
     }
   }
 
-  throw new Error(`no plugin resolveId function found`);
+  // default resolvedId
+  return importee;
 }
 
 
@@ -78,7 +75,8 @@ export async function runPluginLoad(pluginCtx: PluginCtx, id: string) {
     }
   }
 
-  throw new Error(`no plugin load function found`);
+  // default load()
+  return pluginCtx.fs.readFile(id);
 }
 
 

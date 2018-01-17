@@ -87,8 +87,6 @@ async function createBundleJsText(config: Config, compilerCtx: CompilerCtx, buil
     } else {
       jsText = minifyJsResults.output;
     }
-
-    return jsText;
   }
 
   return injectStyleMode(bundle.moduleFiles, jsText, modeName, isScopedStyles);
