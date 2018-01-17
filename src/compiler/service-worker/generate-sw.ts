@@ -1,5 +1,5 @@
-import { BuildCtx, CompilerCtx, Config, ServiceWorkerConfig } from '../../util/interfaces';
-import { catchError } from '../util';
+import { BuildCtx, Config, CompilerCtx, ServiceWorkerConfig } from '../../util/interfaces';
+import { buildWarn, catchError } from '../util';
 
 
 export async function generateServiceWorker(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) {
@@ -34,7 +34,9 @@ async function copyLib(config: Config, buildCtx: BuildCtx) {
     await config.sys.workbox.copyWorkboxLibraries(config.wwwDir);
 
   } catch (e) {
-    catchError(buildCtx.diagnostics, e);
+    // workaround for workbox issue in the latest alpha
+    const d = buildWarn(buildCtx.diagnostics);
+    d.messageText = 'Service worker library already exists';
   }
 
   timeSpan.finish(`copy service worker library finished`);
