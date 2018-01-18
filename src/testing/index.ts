@@ -1,5 +1,4 @@
 
-export * from './testing-cache';
 export * from './testing-compiler';
 export * from './testing-config';
 export * from './testing-fs';

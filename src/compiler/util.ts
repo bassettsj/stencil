@@ -101,21 +101,18 @@ const WEB_DEV_EXT = ['js', 'jsx', 'html', 'htm', 'css', 'scss', 'sass'];
 
 export async function minifyJs(config: Config, compilerCtx: CompilerCtx, jsText: string, sourceTarget: SourceTarget, preamble: boolean) {
   const opts: any = { output: {}, compress: {}, mangle: {} };
-  let cacheKey = 'MinifyJs';
 
   if (sourceTarget === 'es5') {
     opts.ecma = 5;
     opts.output.ecma = 5;
     opts.compress.ecma = 5;
     opts.compress.arrows = false;
-    cacheKey += '_5';
 
   } else {
     opts.ecma = 6;
     opts.output.ecma = 6;
     opts.compress.ecma = 6;
     opts.compress.arrows = true;
-    cacheKey += '_6';
   }
 
   if (config.logLevel === 'debug') {
@@ -127,16 +124,14 @@ export async function minifyJs(config: Config, compilerCtx: CompilerCtx, jsText:
     opts.output.indent_level = 2;
     opts.output.comments = 'all';
     opts.output.preserve_line = true;
-    cacheKey += '_d';
   }
 
   if (preamble) {
     opts.output.preamble = generatePreamble(config);
-    cacheKey += '_p';
   }
 
-  cacheKey = compilerCtx.cache.createKey(cacheKey, jsText);
-  let cachedContent = await compilerCtx.cache.get(cacheKey);
+  const cacheKey = compilerCtx.cache.createKey('minifyJs', opts, jsText);
+  const cachedContent = await compilerCtx.cache.get(cacheKey);
   if (cachedContent != null) {
     return {
       output: cachedContent,

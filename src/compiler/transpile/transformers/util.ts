@@ -1,6 +1,5 @@
 import { DEFAULT_COMPILER_OPTIONS } from '../compiler-options';
 import * as ts from 'typescript';
-import { CompilerCtx } from '../../../util/interfaces';
 
 
 /**
@@ -145,13 +144,7 @@ function arrayToArrayLiteral(list: any[]): ts.ArrayLiteralExpression {
  * @param transformers Array of transforms to run agains the source string
  * @returns a string
  */
-export async function transformSourceString(compilerCtx: CompilerCtx, fileName: string, sourceText: string, transformers: ts.TransformerFactory<ts.SourceFile>[]) {
-  const cacheKey = compilerCtx.cache.createKey('TransformString', sourceText);
-  const cachedContent = await compilerCtx.cache.get(cacheKey);
-  if (cachedContent != null) {
-    return cachedContent;
-  }
-
+export async function transformSourceString(fileName: string, sourceText: string, transformers: ts.TransformerFactory<ts.SourceFile>[]) {
   const transformed = ts.transform(ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.ES2015), transformers);
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed }, {
       onEmitNode: transformed.emitNodeWithNotification,
@@ -159,8 +152,6 @@ export async function transformSourceString(compilerCtx: CompilerCtx, fileName: 
   });
   const result = printer.printBundle(ts.createBundle(transformed.transformed));
   transformed.dispose();
-
-  await compilerCtx.cache.put(cacheKey, result);
 
   return result;
 }

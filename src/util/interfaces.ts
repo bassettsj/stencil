@@ -481,7 +481,6 @@ export interface CompilerCtx {
   events?: BuildEvents;
   moduleFiles?: ModuleFiles;
   rollupCache?: { [cacheKey: string]: any };
-  tsProgramCache?: any;
   compiledModuleJsText?: ModuleBundles;
   compiledModuleLegacyJsText?: ModuleBundles;
   dependentManifests?: {[collectionName: string]: Manifest};

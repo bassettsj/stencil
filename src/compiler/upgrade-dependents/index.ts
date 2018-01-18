@@ -57,7 +57,7 @@ function createDoUpgrade(config: Config, compilerCtx: CompilerCtx, bundles: Bund
 
       try {
         const source = await compilerCtx.fs.readFile(moduleFile.jsFilePath);
-        const output = await transformSourceString(compilerCtx, moduleFile.jsFilePath, source, upgradeTransforms);
+        const output = await transformSourceString(moduleFile.jsFilePath, source, upgradeTransforms);
         await compilerCtx.fs.writeFile(moduleFile.jsFilePath, output, { inMemoryOnly: true });
 
       } catch (e) {

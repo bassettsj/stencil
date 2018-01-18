@@ -1,24 +1,16 @@
-import { BuildConditionals, Diagnostic, TranspileResults, CompilerCtx, Config } from '../../util/interfaces';
+import { BuildConditionals, CompilerCtx, Diagnostic, TranspileResults } from '../../util/interfaces';
 import { buildConditionalsTransform } from './transformers/build-conditionals';
 import { loadTypeScriptDiagnostics } from '../../util/logger/logger-typescript';
 import * as ts from 'typescript';
 
 
-export async function transpileCoreBuild(config: Config, compilerCtx: CompilerCtx, coreBuild: BuildConditionals, input: string) {
+export async function transpileCoreBuild(compilerCtx: CompilerCtx, coreBuild: BuildConditionals, input: string) {
   const results: TranspileResults = {
     code: null,
     diagnostics: null
   };
 
-  let cacheKey = 'Core';
-  Object.keys(coreBuild).forEach((key, i) => {
-    if ((coreBuild as any)[key]) {
-      cacheKey += '_' + key + '_' + i;
-    }
-  });
-  cacheKey = 'Core_' + config.sys.generateContentHash(cacheKey, 12);
-
-  cacheKey = compilerCtx.cache.createKey(cacheKey, input);
+  const cacheKey = compilerCtx.cache.createKey('transpileCoreBuild', coreBuild, input);
   const cachedContent = await compilerCtx.cache.get(cacheKey);
   if (cachedContent != null) {
     results.code = cachedContent;
@@ -62,7 +54,7 @@ export async function transpileToEs5(compilerCtx: CompilerCtx, input: string) {
     diagnostics: null
   };
 
-  const cacheKey = compilerCtx.cache.createKey('TranspileToEs5', input);
+  const cacheKey = compilerCtx.cache.createKey('transpileToEs5', input);
   const cachedContent = await compilerCtx.cache.get(cacheKey);
   if (cachedContent != null) {
     results.code = cachedContent;

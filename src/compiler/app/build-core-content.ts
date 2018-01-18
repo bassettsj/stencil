@@ -5,7 +5,7 @@ import { transpileCoreBuild } from '../transpile/core-build';
 export async function buildCoreContent(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, coreBuild: BuildConditionals, coreContent: string) {
   const timespan = config.logger.createTimeSpan(`buildCoreContent ${coreBuild.coreId} start`, true);
 
-  const transpileResults = await transpileCoreBuild(config, compilerCtx, coreBuild, coreContent);
+  const transpileResults = await transpileCoreBuild(compilerCtx, coreBuild, coreContent);
 
   if (transpileResults.diagnostics && transpileResults.diagnostics.length) {
     buildCtx.diagnostics.push(...transpileResults.diagnostics);
@@ -31,23 +31,17 @@ export async function buildCoreContent(config: Config, compilerCtx: CompilerCtx,
 
 async function minifyCore(config: Config, compilerCtx: CompilerCtx, sourceTarget: SourceTarget, input: string) {
   const opts: any = Object.assign({}, config.minifyJs ? PROD_MINIFY_OPTS : DEV_MINIFY_OPTS);
-  let cacheKey = 'MinifyCore';
 
   if (sourceTarget === 'es5') {
     opts.ecma = 5;
     opts.output.ecma = 5;
     opts.compress.ecma = 5;
     opts.compress.arrows = false;
-    cacheKey += '_5';
-
-  } else {
-    cacheKey += '_6';
   }
 
   opts.compress.toplevel = true;
 
   if (config.minifyJs) {
-    cacheKey += '_m';
     if (sourceTarget !== 'es5') {
       opts.compress.arrows = true;
     }
@@ -70,11 +64,10 @@ async function minifyCore(config: Config, compilerCtx: CompilerCtx, sourceTarget
       opts.output.indent_level = 2;
       opts.output.comments = 'all';
       opts.output.preserve_line = true;
-      cacheKey += '_d';
     }
   }
 
-  cacheKey = compilerCtx.cache.createKey(cacheKey, input);
+  const cacheKey = compilerCtx.cache.createKey('minifyCore', opts, input);
   const cachedContent = await compilerCtx.cache.get(cacheKey);
   if (cachedContent != null) {
     return {

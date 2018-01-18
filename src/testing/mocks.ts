@@ -10,7 +10,9 @@ import { validateBuildConfig } from '../util/validate-config';
 import { TestingConfig } from './testing-config';
 import { TestingSystem } from './testing-sys';
 import { TestingFs } from './testing-fs';
-import { TestingLogger, TestingCache } from './index';
+import { TestingLogger } from './index';
+import { Cache } from '../compiler/cache';
+import { InMemoryFileSystem } from '../util/in-memory-fs';
 
 
 export function mockPlatform(win?: any, domApi?: DomApi) {
@@ -95,7 +97,10 @@ export function mockLogger() {
 
 
 export function mockCache() {
-  return new TestingCache();
+  const fs = new InMemoryFileSystem(mockFs(), require('path'));
+  const config = mockConfig();
+  config.enableCache = true;
+  return new Cache(config, fs, '/tmp/mock-cache');
 }
 
 

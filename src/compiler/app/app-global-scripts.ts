@@ -83,10 +83,7 @@ async function bundleProjectGlobal(config: Config, compilerCtx: CompilerCtx, bui
     return null;
   }
 
-  let cacheKey = `Global_${namespace}_${entry}`.replace(/\\|\//g, '_');
-  if (sourceTarget) {
-    cacheKey += '_5';
-  }
+  const cacheKey = compilerCtx.cache.createKey('bundleProjectGlobal', namespace, entry, sourceTarget);
   const cachedContent = await compilerCtx.cache.get(cacheKey);
   if (cachedContent != null) {
     return cachedContent;

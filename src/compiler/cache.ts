@@ -3,7 +3,8 @@ import { InMemoryFileSystem } from '../util/in-memory-fs';
 
 
 export class Cache {
-  private failedGets = 0;
+  private failed = 0;
+  private skip = false;
 
   constructor(private config: Config, private cacheFs: InMemoryFileSystem, private tmpDir: string) {
     if (config.enableCache) {
@@ -17,13 +18,14 @@ export class Cache {
   }
 
   async get(key: string) {
-    if (!this.config.enableCache) {
+    if (!this.config.enableCache || this.skip) {
       return null;
     }
 
-    if (this.failedGets >= MAX_FAILED_GETS) {
-      if (this.failedGets === MAX_FAILED_GETS) {
-        this.config.logger.debug(`cache had ${this.failedGets} failed gets, skip cache disk reads for remander of build`);
+    if (this.failed >= MAX_FAILED) {
+      if (!this.skip) {
+        this.skip = true;
+        this.config.logger.debug(`cache had ${this.failed} failed ops, skip disk ops for remander of build`);
       }
       return null;
     }
@@ -31,10 +33,11 @@ export class Cache {
     let result: string;
     try {
       result = await this.cacheFs.readFile(this.getCacheFilePath(key));
-      this.failedGets = 0;
+      this.failed = 0;
+      this.skip = false;
 
     } catch (e) {
-      this.failedGets++;
+      this.failed++;
       result = null;
     }
 
@@ -52,22 +55,24 @@ export class Cache {
       await this.cacheFs.writeFile(this.getCacheFilePath(key), value);
       result = true;
     } catch (e) {
+      this.failed++;
       result = false;
     }
 
     return result;
   }
 
-  createKey(domain: string, content: string) {
+  createKey(domain: string, ...args: any[]) {
     if (!this.config.enableCache) {
       return '';
     }
-    return domain + '_' + this.config.sys.generateContentHash(content, 32);
+    return domain + '_' + this.config.sys.generateContentHash(JSON.stringify(args), 32);
   }
 
   async commit() {
     if (this.config.enableCache) {
-      this.failedGets = 0;
+      this.skip = false;
+      this.failed = 0;
       await this.cacheFs.commit();
     }
   }
@@ -82,4 +87,5 @@ export class Cache {
 
 }
 
-const MAX_FAILED_GETS = 20;
+
+const MAX_FAILED = 20;

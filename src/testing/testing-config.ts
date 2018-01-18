@@ -11,7 +11,7 @@ export class TestingConfig implements Config {
   suppressTypeScriptErrors = true;
   devMode = true;
   buildStats = true;
-  enableCache = true;
+  enableCache = false;
   buildAppCore = false;
 
 }
