@@ -6,7 +6,7 @@ import { inlineExternalAssets } from './inline-external-assets';
 import { insertCanonicalLink } from './canonical-link';
 
 
-export function optimizeHtml(config: Config, ctx: CompilerCtx, doc: Document, styles: string[], opts: HydrateOptions, results: HydrateResults) {
+export async function optimizeHtml(config: Config, ctx: CompilerCtx, doc: Document, styles: string[], opts: HydrateOptions, results: HydrateResults) {
   setHtmlDataSsrAttr(doc);
 
   if (opts.canonicalLink !== false) {
@@ -41,7 +41,7 @@ export function optimizeHtml(config: Config, ctx: CompilerCtx, doc: Document, st
     // remove the script to the external loader script request
     // inline the loader script at the bottom of the html
     try {
-      inlineLoaderScript(config, ctx, doc, results);
+      await inlineLoaderScript(config, ctx, doc, results);
 
     } catch (e) {
       results.diagnostics.push({
@@ -55,7 +55,7 @@ export function optimizeHtml(config: Config, ctx: CompilerCtx, doc: Document, st
 
   if (opts.inlineAssetsMaxSize > 0) {
     try {
-      inlineExternalAssets(config, ctx, results, doc);
+      await inlineExternalAssets(config, ctx, results, doc);
 
     } catch (e) {
       results.diagnostics.push({

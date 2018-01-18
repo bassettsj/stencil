@@ -33,6 +33,10 @@ export function validateBuildConfig(config: Config, setEnvVariables?: boolean) {
     config.buildStats = false;
   }
 
+  if (typeof config.buildAppCore !== 'boolean') {
+    config.buildAppCore = true;
+  }
+
   validateNamespace(config);
 
   const path = config.sys.path;

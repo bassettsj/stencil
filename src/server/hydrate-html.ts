@@ -39,7 +39,7 @@ export function hydrateHtml(config: Config, ctx: CompilerCtx, cmpRegistry: Compo
 
     // fire off this function when the app has finished loading
     // and all components have finished hydrating
-    plt.onAppLoad = (rootElm, styles, failureDiagnostic) => {
+    plt.onAppLoad = async (rootElm, styles, failureDiagnostic) => {
 
       if (config._isTesting) {
         (hydrateResults as any).__testPlatform = plt;
@@ -58,7 +58,7 @@ export function hydrateHtml(config: Config, ctx: CompilerCtx, cmpRegistry: Compo
       if (rootElm) {
         try {
           // optimize this document!!
-          optimizeHtml(config, ctx, doc, styles, opts, hydrateResults);
+          await optimizeHtml(config, ctx, doc, styles, opts, hydrateResults);
 
           // gather up all of the <a> tag information in the doc
           if (opts.collectAnchors !== false) {

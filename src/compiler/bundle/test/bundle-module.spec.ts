@@ -74,9 +74,7 @@ describe('bundle-module', () => {
 
       expectFilesWritten(r,
         '/www/build/app/cmp-a.js',
-        '/www/build/app/cmp-c.js',
-        '/www/build/app.js',
-        '/www/build/app/app.registry.json'
+        '/www/build/app/cmp-c.js'
       );
     });
 

@@ -2,7 +2,7 @@ import { Config, CompilerCtx, HydrateResults, Url } from '../../util/interfaces'
 import { pathJoin } from '../util';
 
 
-export function inlineExternalAssets(config: Config, ctx: CompilerCtx, results: HydrateResults, doc: Document) {
+export async function inlineExternalAssets(config: Config, ctx: CompilerCtx, results: HydrateResults, doc: Document) {
   const linkElements = doc.querySelectorAll('link[href][rel="stylesheet"]') as any;
   for (var i = 0; i < linkElements.length; i++) {
     inlineStyle(config, ctx, results, doc, linkElements[i] as any);
@@ -10,13 +10,13 @@ export function inlineExternalAssets(config: Config, ctx: CompilerCtx, results: 
 
   const scriptElements = doc.querySelectorAll('script[src]') as any;
   for (i = 0; i < scriptElements.length; i++) {
-    inlineScript(config, ctx, results, scriptElements[i] as any);
+    await inlineScript(config, ctx, results, scriptElements[i] as any);
   }
 }
 
 
-function inlineStyle(config: Config, ctx: CompilerCtx, results: HydrateResults, doc: Document, linkElm: HTMLLinkElement) {
-  const content = getAssetContent(config, ctx, results, linkElm.href);
+async function inlineStyle(config: Config, ctx: CompilerCtx, results: HydrateResults, doc: Document, linkElm: HTMLLinkElement) {
+  const content = await getAssetContent(config, ctx, results, linkElm.href);
   if (!content) {
     return;
   }
@@ -31,8 +31,8 @@ function inlineStyle(config: Config, ctx: CompilerCtx, results: HydrateResults, 
 }
 
 
-function inlineScript(config: Config, ctx: CompilerCtx, results: HydrateResults, scriptElm: HTMLScriptElement) {
-  const content = getAssetContent(config, ctx, results, scriptElm.src);
+async function inlineScript(config: Config, ctx: CompilerCtx, results: HydrateResults, scriptElm: HTMLScriptElement) {
+  const content = await getAssetContent(config, ctx, results, scriptElm.src);
   if (!content) {
     return;
   }
@@ -44,7 +44,7 @@ function inlineScript(config: Config, ctx: CompilerCtx, results: HydrateResults,
 }
 
 
-function getAssetContent(config: Config, ctx: CompilerCtx, results: HydrateResults, assetUrl: string) {
+async function getAssetContent(config: Config, ctx: CompilerCtx, results: HydrateResults, assetUrl: string) {
   // figure out the url's so we can check the hostnames
   const fromUrl = config.sys.url.parse(results.url);
   const toUrl = config.sys.url.parse(assetUrl);
@@ -60,10 +60,7 @@ function getAssetContent(config: Config, ctx: CompilerCtx, results: HydrateResul
   // doesn't look like we've got it cached in app files
   try {
     // try looking it up directly
-    let content = ctx.fs.readFileSync(filePath);
-
-    // cool we found it, cache it for later
-    ctx.appFiles[filePath] = content;
+    let content = await ctx.fs.readFile(filePath);
 
     // rough estimate of size
     const fileSize = content.length;

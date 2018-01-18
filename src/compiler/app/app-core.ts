@@ -31,12 +31,6 @@ export async function generateCore(config: Config, compilerCtx: CompilerCtx, bui
 
   const coreFilename = getCoreFilename(config, buildConditionals.coreId, jsContent);
 
-  if (compilerCtx.appFiles[buildConditionals.coreId] === jsContent) {
-    // build is identical from last, no need to resave
-    return coreFilename;
-  }
-  compilerCtx.appFiles[buildConditionals.coreId] = jsContent;
-
   // update the app core filename within the content
   jsContent = jsContent.replace(APP_NAMESPACE_PLACEHOLDER, config.fsNamespace);
 

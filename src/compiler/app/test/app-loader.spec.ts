@@ -41,14 +41,13 @@ describe('build-project-files', () => {
       const appLoader = injectAppIntoLoader(
         config,
         'my-app.core.js',
-        'my-app.core.ssr.js',
         'my-app.core.pf.js',
         'hydrated-css',
         cmpRegistry,
         `("__APP__")`
       );
 
-      expect(appLoader).toBe(`("MyApp","build/my-app/","my-app.core.js","my-app.core.ssr.js","my-app.core.pf.js","hydrated-css",[["root-cmp",{"Mode1":"abc","Mode2":"def"}]])`);
+      expect(appLoader).toBe(`("MyApp","build/my-app/","my-app.core.js","my-app.core.pf.js","hydrated-css",[["root-cmp",{"Mode1":"abc","Mode2":"def"}]])`);
     });
 
   });
@@ -72,7 +71,7 @@ describe('build-project-files', () => {
       mockGetClientCoreFile.mockReturnValue(Promise.resolve(`pretend i am code ('__APP__') yeah me too`));
       const res = await callGenerateLoader();
       let lines = res.split('\n');
-      expect(lines[1]).toEqual(`pretend i am code ("MyApp","build/myapp/","myapp.core.js","myapp.core.ssr.js","myapp.core.pf.js","hydrated",[]) yeah me too`);
+      expect(lines[1]).toEqual(`pretend i am code ("MyApp","build/myapp/","myapp.core.js","myapp.core.pf.js","hydrated",[]) yeah me too`);
     });
   });
 
@@ -89,7 +88,6 @@ describe('build-project-files', () => {
 
     let appRegistry: AppRegistry = {
       core: 'myapp.core.js',
-      coreSsr: 'myapp.core.ssr.js',
       corePolyfilled: 'myapp.core.pf.js',
       components: {},
       namespace: config.namespace,

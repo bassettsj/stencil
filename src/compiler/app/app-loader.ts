@@ -20,7 +20,6 @@ export async function generateLoader(
   loaderContent = injectAppIntoLoader(
     config,
     appRegistry.core,
-    appRegistry.coreSsr,
     appRegistry.corePolyfilled,
     config.hydratedCssClass,
     cmpRegistry,
@@ -54,13 +53,11 @@ export async function generateLoader(
     if (config.generateWWW) {
       const appLoaderWWW = getLoaderWWW(config);
       await compilerCtx.fs.writeFile(appLoaderWWW, loaderContent);
-      compilerCtx.appFiles[appLoaderWWW] = loaderContent;
     }
 
     if (config.generateDistribution) {
       const appLoaderDist = getLoaderDist(config);
       await compilerCtx.fs.writeFile(appLoaderDist, loaderContent);
-      compilerCtx.appFiles[appLoaderDist] = loaderContent;
     }
   }
 
@@ -71,7 +68,6 @@ export async function generateLoader(
 export function injectAppIntoLoader(
   config: Config,
   appCoreFileName: string,
-  appCoreSsrFileName: string,
   appCorePolyfilledFileName: string,
   hydratedCssClass: string,
   cmpRegistry: ComponentRegistry,
@@ -87,7 +83,6 @@ export function injectAppIntoLoader(
     `"${config.namespace}"`,
     `"${publicPath}"`,
     `"${appCoreFileName}"`,
-    `"${appCoreSsrFileName}"`,
     `"${appCorePolyfilledFileName}"`,
     `"${hydratedCssClass}"`,
     cmpLoaderRegistryStr

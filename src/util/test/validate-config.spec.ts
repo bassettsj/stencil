@@ -27,6 +27,27 @@ describe('validation', () => {
 
   });
 
+  describe('buildAppCore', () => {
+
+    it('set buildAppCore true', () => {
+      config.buildStats = true;
+      validateBuildConfig(config);
+      expect(config.buildAppCore).toBe(true);
+    });
+
+    it('set buildAppCore false', () => {
+      config.buildAppCore = false;
+      validateBuildConfig(config);
+      expect(config.buildAppCore).toBe(false);
+    });
+
+    it('default buildAppCore true', () => {
+      validateBuildConfig(config);
+      expect(config.buildAppCore).toBe(true);
+    });
+
+  });
+
   describe('buildStats', () => {
 
     it('set buildStats true', () => {

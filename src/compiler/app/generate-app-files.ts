@@ -11,6 +11,11 @@ import { setBuildConditionals } from './build-conditionals';
 
 
 export async function generateAppFiles(config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx, bundles: Bundle[], cmpRegistry: ComponentRegistry) {
+  if (!config.buildAppCore) {
+    config.logger.createTimeSpan(`generate app files skipped`, true);
+    return;
+  }
+
   const timespan = config.logger.createTimeSpan(`generate app files started`);
 
   try {
@@ -23,19 +28,10 @@ export async function generateAppFiles(config: Config, compilerCtx: CompilerCtx,
     // figure out which sections should be included in the core build
     const buildConditionals = await setBuildConditionals(config, compilerCtx, bundles);
     buildConditionals.coreId = 'core';
-    buildConditionals.ssrClientSide = false;
 
     const coreFilename = await generateCore(config, compilerCtx, buildCtx, globalJsContentsEs2015, buildConditionals);
     appRegistry.core = coreFilename;
-
-    const buildConditionalsSsr = await setBuildConditionals(config, compilerCtx, bundles);
-    buildConditionalsSsr.coreId = 'core.ssr';
-    buildConditionalsSsr.ssrClientSide = true;
-
-    const coreSsrFilename = await generateCore(config, compilerCtx, buildCtx, globalJsContentsEs2015, buildConditionalsSsr);
-    appRegistry.coreSsr = coreSsrFilename;
-    compilerCtx.appCoreWWWPath = pathJoin(config, getAppWWWBuildDir(config), coreSsrFilename);
-
+    compilerCtx.appCoreWWWPath = pathJoin(config, getAppWWWBuildDir(config), coreFilename);
 
     if (config.buildEs5) {
       // es5 build (if needed)
@@ -46,7 +42,6 @@ export async function generateAppFiles(config: Config, compilerCtx: CompilerCtx,
       buildConditionalsEs5.es5 = true;
       buildConditionalsEs5.polyfills = true;
       buildConditionalsEs5.cssVarShim = true;
-      buildConditionalsEs5.ssrClientSide = true;
 
       const coreFilenameEs5 = await generateCore(config, compilerCtx, buildCtx, globalJsContentsEs5, buildConditionalsEs5);
       appRegistry.corePolyfilled = coreFilenameEs5;

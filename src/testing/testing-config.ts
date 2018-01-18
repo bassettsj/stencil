@@ -12,5 +12,6 @@ export class TestingConfig implements Config {
   devMode = true;
   buildStats = true;
   enableCache = true;
+  buildAppCore = false;
 
 }

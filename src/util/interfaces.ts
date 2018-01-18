@@ -233,7 +233,6 @@ export interface AppRegistry {
   fsNamespace?: string;
   loader?: string;
   core?: string;
-  coreSsr?: string;
   corePolyfilled?: string;
   global?: string;
   components?: AppRegistryComponents;
@@ -256,7 +255,7 @@ export interface Bundle {
 
 
 export interface BuildConditionals {
-  coreId?: 'core' | 'core.ssr' | 'core.pf';
+  coreId?: 'core' | 'core.pf';
   polyfills?: boolean;
   verboseError: boolean;
   es5?: boolean;
@@ -264,7 +263,6 @@ export interface BuildConditionals {
   clientSide?: boolean;
 
   // ssr
-  ssrClientSide: boolean;
   ssrServerSide: boolean;
 
   // encapsulation
@@ -312,6 +310,7 @@ export interface Config {
   logLevel?: 'error'|'warn'|'info'|'debug'|string;
   buildStats?: boolean;
   buildEs5?: boolean;
+  buildAppCore?: boolean;
   namespace?: string;
   fsNamespace?: string;
   globalScript?: string;
@@ -493,7 +492,6 @@ export interface CompilerCtx {
     corePolyfilled?: string;
     global?: string;
     registryJson?: string;
-    [key: string]: string;
   };
   appCoreWWWPath?: string;
 
