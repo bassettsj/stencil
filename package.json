@@ -1,6 +1,6 @@
 {
   "name": "@stencil/core",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -67,7 +67,6 @@
     "listr": "^0.13.0",
     "minimatch": "^3.0.4",
     "node-fetch": "^1.7.3",
-    "read-pkg-up": "^2.0.0",
     "rimraf": "^2.6.2",
     "semver": "^5.4.1",
     "ts-jest": "^22.0.1",
